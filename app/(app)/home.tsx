@@ -1,5 +1,12 @@
-import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
 import { useAuth } from "../context/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
@@ -21,6 +28,7 @@ type ExpenseSummary = {
 export default function Home() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [summary, setSummary] = useState<ExpenseSummary>({
     totalPersonal: 0,
     totalGroup: 0,
@@ -29,84 +37,90 @@ export default function Home() {
     recentExpenses: [],
   });
 
+  const fetchSummary = async () => {
+    if (!user) return;
+
+    try {
+      // Fetch personal expenses
+      const personalExpensesQuery = query(
+        collection(db, "expenses"),
+        where("userId", "==", user.uid)
+      );
+      const personalExpensesSnapshot = await getDocs(personalExpensesQuery);
+      const totalPersonal = personalExpensesSnapshot.docs.reduce(
+        (sum, doc) => sum + doc.data().amount,
+        0
+      );
+
+      // Fetch groups user is part of
+      const groupsQuery = query(
+        collection(db, "groups"),
+        where("members", "array-contains", user.email)
+      );
+      const groupsSnapshot = await getDocs(groupsQuery);
+      const groupCount = groupsSnapshot.size;
+
+      // Fetch group expenses where user is involved
+      const groupExpensesQuery = query(
+        collection(db, "groupExpenses"),
+        where("splitBetween", "array-contains", user.email)
+      );
+      const groupExpensesSnapshot = await getDocs(groupExpensesQuery);
+      const totalGroup = groupExpensesSnapshot.docs.reduce(
+        (sum, doc) => sum + doc.data().amount,
+        0
+      );
+
+      // Fetch pending tasks assigned to user
+      const tasksQuery = query(
+        collection(db, "groupTasks"),
+        where("assignedTo", "==", user.email),
+        where("completed", "==", false)
+      );
+      const tasksSnapshot = await getDocs(tasksQuery);
+      const pendingTasks = tasksSnapshot.size;
+
+      // Get recent expenses (both personal and group)
+      const recentExpenses = [
+        ...personalExpensesSnapshot.docs.map((doc) => ({
+          amount: doc.data().amount,
+          description: doc.data().description,
+          date: doc.data().date.toDate(),
+          isGroup: false,
+        })),
+        ...groupExpensesSnapshot.docs.map((doc) => ({
+          amount: doc.data().amount,
+          description: doc.data().description,
+          date: doc.data().date.toDate(),
+          isGroup: true,
+        })),
+      ]
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .slice(0, 5);
+
+      setSummary({
+        totalPersonal,
+        totalGroup,
+        pendingTasks,
+        groupCount,
+        recentExpenses,
+      });
+    } catch (error) {
+      console.error("Error fetching summary:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchSummary = async () => {
-      if (!user) return;
-
-      try {
-        // Fetch personal expenses
-        const personalExpensesQuery = query(
-          collection(db, "expenses"),
-          where("userId", "==", user.uid)
-        );
-        const personalExpensesSnapshot = await getDocs(personalExpensesQuery);
-        const totalPersonal = personalExpensesSnapshot.docs.reduce(
-          (sum, doc) => sum + doc.data().amount,
-          0
-        );
-
-        // Fetch groups user is part of
-        const groupsQuery = query(
-          collection(db, "groups"),
-          where("members", "array-contains", user.email)
-        );
-        const groupsSnapshot = await getDocs(groupsQuery);
-        const groupCount = groupsSnapshot.size;
-
-        // Fetch group expenses where user is involved
-        const groupExpensesQuery = query(
-          collection(db, "groupExpenses"),
-          where("splitBetween", "array-contains", user.email)
-        );
-        const groupExpensesSnapshot = await getDocs(groupExpensesQuery);
-        const totalGroup = groupExpensesSnapshot.docs.reduce(
-          (sum, doc) => sum + doc.data().amount,
-          0
-        );
-
-        // Fetch pending tasks assigned to user
-        const tasksQuery = query(
-          collection(db, "groupTasks"),
-          where("assignedTo", "==", user.email),
-          where("completed", "==", false)
-        );
-        const tasksSnapshot = await getDocs(tasksQuery);
-        const pendingTasks = tasksSnapshot.size;
-
-        // Get recent expenses (both personal and group)
-        const recentExpenses = [
-          ...personalExpensesSnapshot.docs.map((doc) => ({
-            amount: doc.data().amount,
-            description: doc.data().description,
-            date: doc.data().date.toDate(),
-            isGroup: false,
-          })),
-          ...groupExpensesSnapshot.docs.map((doc) => ({
-            amount: doc.data().amount,
-            description: doc.data().description,
-            date: doc.data().date.toDate(),
-            isGroup: true,
-          })),
-        ]
-          .sort((a, b) => b.date.getTime() - a.date.getTime())
-          .slice(0, 5);
-
-        setSummary({
-          totalPersonal,
-          totalGroup,
-          pendingTasks,
-          groupCount,
-          recentExpenses,
-        });
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching summary:", error);
-        setLoading(false);
-      }
-    };
-
     fetchSummary();
   }, [user]);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchSummary();
+  }, []);
 
   if (loading) {
     return (
@@ -117,7 +131,17 @@ export default function Home() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#007AFF"
+          title="Pull to refresh"
+        />
+      }
+    >
       <Text style={styles.welcomeText}>Welcome back!</Text>
       <Text style={styles.email}>{user?.email}</Text>
 
@@ -158,20 +182,14 @@ export default function Home() {
       {summary.recentExpenses.map((expense, index) => (
         <View key={index} style={styles.expenseItem}>
           <View style={styles.expenseInfo}>
-            <Text style={styles.expenseDescription}>
-              {expense.description}
-            </Text>
+            <Text style={styles.expenseDescription}>{expense.description}</Text>
             <Text style={styles.expenseDate}>
               {expense.date.toLocaleDateString()}
             </Text>
           </View>
           <View style={styles.expenseAmount}>
-            <Text style={styles.amount}>
-              ${expense.amount.toFixed(2)}
-            </Text>
-            {expense.isGroup && (
-              <Text style={styles.groupTag}>Group</Text>
-            )}
+            <Text style={styles.amount}>${expense.amount.toFixed(2)}</Text>
+            {expense.isGroup && <Text style={styles.groupTag}>Group</Text>}
           </View>
         </View>
       ))}

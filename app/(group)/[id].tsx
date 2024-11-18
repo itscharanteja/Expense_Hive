@@ -1,3 +1,4 @@
+import React from "react";
 import { useState, useEffect } from "react";
 import {
   View,
@@ -25,6 +26,7 @@ import {
   getDocs,
   arrayUnion,
   arrayRemove,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
@@ -233,6 +235,54 @@ export default function GroupDetails() {
     }
   };
 
+  const handleLongPressExpense = (expense: GroupExpense) => {
+    Alert.alert(
+      "Delete Expense",
+      "Are you sure you want to delete this expense?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "groupExpenses", expense.id));
+              Alert.alert("Success", "Expense deleted successfully");
+            } catch (error) {
+              console.error("Error deleting expense:", error);
+              Alert.alert("Error", "Failed to delete expense");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLongPressTask = (task: GroupTask) => {
+    Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, "groupTasks", task.id));
+            Alert.alert("Success", "Task deleted successfully");
+          } catch (error) {
+            console.error("Error deleting task:", error);
+            Alert.alert("Error", "Failed to delete task");
+          }
+        },
+      },
+    ]);
+  };
+
   if (loading || !group) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -270,7 +320,12 @@ export default function GroupDetails() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Expenses</Text>
           <TouchableOpacity
-            onPress={() => router.push(`/(group)/${id}/add-expense`)}
+            onPress={() =>
+              router.push({
+                pathname: "/[id]/add-expense" as const,
+                params: { id: id as string },
+              })
+            }
             style={styles.addButton}
           >
             <Ionicons name="add" size={24} color="white" />
@@ -280,7 +335,11 @@ export default function GroupDetails() {
           data={expenses}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.expenseItem}>
+            <TouchableOpacity
+              style={styles.expenseItem}
+              onLongPress={() => handleLongPressExpense(item)}
+              delayLongPress={500}
+            >
               <View>
                 <Text style={styles.expenseDescription}>
                   {item.description}
@@ -292,7 +351,7 @@ export default function GroupDetails() {
               <Text style={styles.expenseAmount}>
                 ${item.amount.toFixed(2)}
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
       </View>
@@ -301,7 +360,12 @@ export default function GroupDetails() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Tasks</Text>
           <TouchableOpacity
-            onPress={() => router.push(`/(group)/${id}/add-task`)}
+            onPress={() =>
+              router.push({
+                pathname: "/[id]/add-task" as const,
+                params: { id: id as string },
+              })
+            }
             style={styles.addButton}
           >
             <Ionicons name="add" size={24} color="white" />
@@ -314,6 +378,8 @@ export default function GroupDetails() {
             <TouchableOpacity
               style={styles.taskItem}
               onPress={() => toggleTaskStatus(item.id, !item.completed)}
+              onLongPress={() => handleLongPressTask(item)}
+              delayLongPress={500}
             >
               <Ionicons
                 name={item.completed ? "checkbox" : "square-outline"}

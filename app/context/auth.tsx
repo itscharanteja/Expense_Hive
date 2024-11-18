@@ -20,7 +20,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_KEY = "@auth_key";
+const AUTH_KEY = "@auth_user";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -29,7 +29,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Function to ensure user document exists
   const ensureUserDocument = async (user: User) => {
     try {
-      // Check if user document exists
       const userDocRef = doc(collection(db, "users"), user.uid);
       const emailDocRef = doc(
         collection(db, "users"),
@@ -40,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const emailDoc = await getDoc(emailDocRef);
 
       if (!userDoc.exists()) {
-        // Create user document if it doesn't exist
         await setDoc(userDocRef, {
           email: user.email?.toLowerCase(),
           uid: user.uid,
@@ -49,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!emailDoc.exists() && user.email) {
-        // Create email document if it doesn't exist
         await setDoc(emailDocRef, {
           email: user.email.toLowerCase(),
           uid: user.uid,
@@ -61,18 +58,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Load saved auth state when app starts
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            // Ensure user document exists whenever user logs in
-            await ensureUserDocument(user);
-            setUser(user);
+        // Set up Firebase auth state listener
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          if (firebaseUser) {
             try {
+              await ensureUserDocument(firebaseUser);
+              setUser(firebaseUser);
+              // Save user data to AsyncStorage
               const userData = {
-                uid: user.uid,
-                email: user.email,
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                // Add any other user data you want to persist
               };
               await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
             } catch (error) {
@@ -80,10 +80,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           } else {
             setUser(null);
+            // Clear saved auth data
             await AsyncStorage.removeItem(AUTH_KEY);
           }
           setLoading(false);
         });
+
+        // Check for saved auth data
+        const savedAuth = await AsyncStorage.getItem(AUTH_KEY);
+        if (savedAuth) {
+          const userData = JSON.parse(savedAuth);
+          // This will trigger the onAuthStateChanged listener above
+          await signInWithEmailAndPassword(
+            auth,
+            userData.email,
+            userData.password
+          );
+        } else {
+          setLoading(false);
+        }
 
         return () => unsubscribe();
       } catch (error) {
@@ -103,8 +118,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password
       );
-      // Ensure user document exists on sign in
       await ensureUserDocument(userCredential.user);
+      // Save credentials for auto-login
+      const userData = {
+        email,
+        password, // Note: In a production app, consider encryption
+        uid: userCredential.user.uid,
+      };
+      await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
     } catch (error) {
       throw error;
     } finally {
@@ -120,9 +141,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password
       );
-
-      // Create user documents
       await ensureUserDocument(userCredential.user);
+      // Save credentials for auto-login
+      const userData = {
+        email,
+        password, // Note: In a production app, consider encryption
+        uid: userCredential.user.uid,
+      };
+      await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
     } catch (error) {
       throw error;
     } finally {
@@ -135,6 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       await firebaseSignOut(auth);
       await AsyncStorage.removeItem(AUTH_KEY);
+      setUser(null);
     } catch (error) {
       throw error;
     } finally {

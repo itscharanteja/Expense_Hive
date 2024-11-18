@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,15 +6,20 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import {
   collection,
   query,
   where,
   onSnapshot,
   orderBy,
+  getDocs,
+  doc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
@@ -31,10 +36,11 @@ type Expense = {
 export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const { user } = useAuth();
 
-  useEffect(() => {
+  const fetchExpenses = async () => {
     if (!user) return;
 
     try {
@@ -45,31 +51,86 @@ export default function Expenses() {
         orderBy("date", "desc")
       );
 
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const expensesData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            date: doc.data().date.toDate(),
-          })) as Expense[];
-          setExpenses(expensesData);
-          setLoading(false);
-        },
-        (err) => {
-          console.error("Error fetching expenses:", err);
-          setError("Failed to load expenses");
-          setLoading(false);
-        }
-      );
+      const snapshot = await getDocs(q);
+      const expensesData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        date: doc.data().date.toDate(),
+      })) as Expense[];
 
-      return () => unsubscribe();
+      setExpenses(expensesData);
+      setError("");
     } catch (err) {
-      console.error("Error setting up expenses listener:", err);
+      console.error("Error fetching expenses:", err);
       setError("Failed to load expenses");
+    } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  useEffect(() => {
+    // Set up real-time listener
+    if (!user) return;
+
+    const expensesRef = collection(db, "expenses");
+    const q = query(
+      expensesRef,
+      where("userId", "==", user.uid),
+      orderBy("date", "desc")
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const expensesData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          date: doc.data().date.toDate(),
+        })) as Expense[];
+        setExpenses(expensesData);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Error in expenses listener:", err);
+        setError("Failed to load expenses");
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
   }, [user]);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchExpenses();
+  }, []);
+
+  const handleLongPressExpense = (expense: Expense) => {
+    Alert.alert(
+      "Delete Expense",
+      "Are you sure you want to delete this expense?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "expenses", expense.id));
+              Alert.alert("Success", "Expense deleted successfully");
+            } catch (error) {
+              console.error("Error deleting expense:", error);
+              Alert.alert("Error", "Failed to delete expense");
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (loading) {
     return (
@@ -109,8 +170,20 @@ export default function Expenses() {
         <FlatList
           data={expenses}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#007AFF"
+              title="Pull to refresh"
+            />
+          }
           renderItem={({ item }) => (
-            <View style={styles.expenseItem}>
+            <TouchableOpacity
+              style={styles.expenseItem}
+              onLongPress={() => handleLongPressExpense(item)}
+              delayLongPress={500}
+            >
               <View>
                 <Text style={styles.expenseCategory}>{item.category}</Text>
                 <Text style={styles.expenseDescription}>
@@ -123,7 +196,7 @@ export default function Expenses() {
               <Text style={styles.expenseAmount}>
                 ${item.amount.toFixed(2)}
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}

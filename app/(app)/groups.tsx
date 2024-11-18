@@ -66,7 +66,10 @@ export default function Groups() {
   const checkUserExists = async (email: string): Promise<boolean> => {
     try {
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", email.toLowerCase().trim()));
+      const q = query(
+        usersRef,
+        where("email", "==", email.toLowerCase().trim())
+      );
       const querySnapshot = await getDocs(q);
       return !querySnapshot.empty;
     } catch (error) {
@@ -77,7 +80,7 @@ export default function Groups() {
 
   const addMember = async () => {
     const email = memberEmail.toLowerCase().trim();
-    
+
     if (!email) {
       Alert.alert("Error", "Please enter an email address");
       return;
@@ -95,13 +98,13 @@ export default function Groups() {
     }
 
     setAddingMember(true);
-    
+
     try {
       const userExists = await checkUserExists(email);
-      
+
       if (!userExists) {
         Alert.alert(
-          "Error", 
+          "Error",
           "This user is not registered with ExpenseHive. Please invite them to join first."
         );
         setMemberEmail("");
@@ -137,7 +140,10 @@ export default function Groups() {
       setMembers([]);
       setMemberEmail("");
 
-      router.push(`/(group)/${groupRef.id}`);
+      router.push({
+        pathname: `/(group)/${groupRef.id}`,
+        params: { id: groupRef.id },
+      });
     } catch (error) {
       console.error("Error creating group:", error);
       Alert.alert("Error", "Failed to create group");
@@ -182,7 +188,12 @@ export default function Groups() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.groupItem}
-              onPress={() => router.push(`/(group)/${item.id}`)}
+              onPress={() =>
+                router.push({
+                  pathname: `/(group)/${item.id}`,
+                  params: { id: item.id },
+                })
+              }
             >
               <View>
                 <Text style={styles.groupName}>{item.name}</Text>
@@ -226,7 +237,7 @@ export default function Groups() {
               <TouchableOpacity
                 style={[
                   styles.addMemberButton,
-                  addingMember && styles.buttonDisabled
+                  addingMember && styles.buttonDisabled,
                 ]}
                 onPress={addMember}
                 disabled={addingMember}
@@ -416,5 +427,8 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "white",
     fontWeight: "bold",
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
 });
