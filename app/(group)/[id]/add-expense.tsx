@@ -7,9 +7,11 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Image,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { collection, addDoc, Timestamp, doc, getDoc } from "firebase/firestore";
+import * as ImagePicker from "expo-image-picker";
+import { collection, addDoc, Timestamp, getDoc, doc } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../context/auth";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,9 +27,10 @@ export default function AddGroupExpense() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localReceiptUri, setLocalReceiptUri] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
 
-  // Fetch group members when component mounts
   useEffect(() => {
     const fetchGroupMembers = async () => {
       if (!id) return;
@@ -35,10 +38,9 @@ export default function AddGroupExpense() {
         const groupDoc = await getDoc(doc(db, "groups", id as string));
         if (groupDoc.exists()) {
           const groupData = groupDoc.data();
-          // Initialize all members as selected, including the current user
           const membersList = groupData.members.map((email: string) => ({
             email,
-            selected: true, // Default all members as selected
+            selected: true,
           }));
           setMembers(membersList);
         }
@@ -64,6 +66,90 @@ export default function AddGroupExpense() {
   const getSelectedMembers = () =>
     members.filter((member) => member.selected).map((member) => member.email);
 
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Camera permission is required");
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: "images" as ImagePicker.MediaType,
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [4, 3],
+      });
+
+      if (!result.canceled && result.assets[0].uri) {
+        setLocalReceiptUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Error taking photo:", error);
+      Alert.alert("Error", "Failed to take photo");
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Gallery permission is required");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images" as ImagePicker.MediaType,
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [4, 3],
+      });
+
+      if (!result.canceled && result.assets[0].uri) {
+        setLocalReceiptUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
+  const uploadReceipt = async (uri: string) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const reader = new FileReader();
+
+      return new Promise((resolve, reject) => {
+        reader.onload = async () => {
+          try {
+            const base64data = reader.result as string;
+            const receiptData = {
+              imageData: base64data,
+              uploadedBy: user?.email,
+              uploadedAt: Timestamp.now(),
+              groupId: id,
+            };
+
+            const receiptRef = await addDoc(
+              collection(db, "receipts"),
+              receiptData
+            );
+            resolve(receiptRef.id);
+          } catch (error) {
+            reject(error);
+          }
+        };
+
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user || !id) return;
 
@@ -85,12 +171,29 @@ export default function AddGroupExpense() {
 
     try {
       setIsSubmitting(true);
+      let receiptId = null;
+
+      if (localReceiptUri) {
+        setUploadingImage(true);
+        try {
+          receiptId = await uploadReceipt(localReceiptUri);
+        } catch (error) {
+          console.error("Error uploading receipt:", error);
+          Alert.alert(
+            "Error",
+            "Failed to upload receipt. Continue without receipt?"
+          );
+        }
+        setUploadingImage(false);
+      }
+
       const expenseData = {
         amount: Number(amount),
         description: description.trim(),
         date: Timestamp.now(),
         paidBy: user.email,
         groupId: id,
+        receiptId,
         splitBetween: selectedMembers,
         settled: false,
       };
@@ -132,14 +235,14 @@ export default function AddGroupExpense() {
         multiline
       />
 
-      <Text style={styles.sectionTitle}>Split Between</Text>
-      <View style={styles.membersContainer}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Split Between</Text>
         {members.map((member) => (
           <TouchableOpacity
             key={member.email}
             style={[
-              styles.memberChip,
-              member.selected && styles.memberChipSelected,
+              styles.memberItem,
+              member.selected && styles.memberItemSelected,
             ]}
             onPress={() => toggleMemberSelection(member.email)}
           >
@@ -153,24 +256,58 @@ export default function AddGroupExpense() {
             </Text>
             <Ionicons
               name={member.selected ? "checkmark-circle" : "ellipse-outline"}
-              size={20}
-              color={member.selected ? "white" : "#007AFF"}
+              size={24}
+              color={member.selected ? "#007AFF" : "#666"}
             />
           </TouchableOpacity>
         ))}
       </View>
 
-      {members.length > 0 && (
-        <View style={styles.splitInfo}>
-          <Text style={styles.splitInfoText}>
-            Amount per person: $
-            {(Number(amount || 0) / getSelectedMembers().length).toFixed(2)}
-          </Text>
+      <View style={styles.receiptSection}>
+        <Text style={styles.receiptTitle}>Attach Receipt</Text>
+        <View style={styles.receiptButtons}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.cameraButtonStyle]}
+            onPress={takePhoto}
+            disabled={uploadingImage}
+          >
+            <Ionicons name="camera" size={24} color="white" />
+            <Text style={styles.actionButtonText}>Take Photo</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.galleryButtonStyle]}
+            onPress={pickImage}
+            disabled={uploadingImage}
+          >
+            <Ionicons name="images" size={24} color="white" />
+            <Text style={styles.actionButtonText}>Choose Photo</Text>
+          </TouchableOpacity>
         </View>
-      )}
+
+        {uploadingImage && (
+          <Text style={styles.uploadingText}>Uploading receipt...</Text>
+        )}
+
+        {localReceiptUri && (
+          <View style={styles.previewContainer}>
+            <Image
+              source={{ uri: localReceiptUri }}
+              style={styles.previewImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={styles.removeButtonContainer}
+              onPress={() => setLocalReceiptUri(null)}
+            >
+              <Text style={styles.removeButtonText}>Remove Receipt</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
 
       <TouchableOpacity
-        style={[styles.button, isSubmitting && styles.buttonDisabled]}
+        style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
         onPress={handleSubmit}
         disabled={isSubmitting}
       >
@@ -209,44 +346,32 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
     marginBottom: 10,
   },
-  membersContainer: {
+  memberItem: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 20,
-  },
-  memberChip: {
-    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f0f0f0",
-    padding: 10,
-    borderRadius: 20,
-    gap: 8,
+    padding: 15,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  memberChipSelected: {
-    backgroundColor: "#007AFF",
+  memberItemSelected: {
+    backgroundColor: "#e3f2fd",
   },
   memberEmail: {
+    fontSize: 16,
     color: "#333",
   },
   memberEmailSelected: {
-    color: "white",
-  },
-  splitInfo: {
-    backgroundColor: "#f8f8f8",
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 20,
-  },
-  splitInfoText: {
-    fontSize: 16,
-    textAlign: "center",
     color: "#007AFF",
-    fontWeight: "600",
+    fontWeight: "500",
+  },
+  section: {
+    marginBottom: 20,
   },
   button: {
     backgroundColor: "#007AFF",
@@ -261,5 +386,105 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  cameraButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#34C759",
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 15,
+    gap: 10,
+  },
+  cameraButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  receiptContainer: {
+    marginBottom: 15,
+    alignItems: "center",
+  },
+  receiptImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  removeReceiptButton: {
+    padding: 10,
+  },
+  removeReceiptText: {
+    color: "#FF3B30",
+    fontWeight: "bold",
+  },
+  receiptSection: {
+    marginBottom: 20,
+  },
+  receiptTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+  receiptButtons: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  cameraButtonStyle: {
+    backgroundColor: "#34C759",
+  },
+  galleryButtonStyle: {
+    backgroundColor: "#007AFF",
+  },
+  actionButtonText: {
+    color: "white",
+    fontWeight: "600",
+  },
+  uploadingText: {
+    textAlign: "center",
+    color: "#666",
+    marginTop: 10,
+  },
+  previewContainer: {
+    marginTop: 10,
+    alignItems: "center",
+  },
+  previewImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  removeButtonContainer: {
+    padding: 8,
+  },
+  removeButtonText: {
+    color: "#FF3B30",
+    fontWeight: "600",
+  },
+  submitButton: {
+    backgroundColor: "#007AFF",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: "white",
+    fontWeight: "600",
   },
 });

@@ -9,5 +9,32 @@ export default function GroupLayout() {
     return <Redirect href="/login" />;
   }
 
-  return <Stack />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="[id]"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="[id]/add-expense"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="[id]/add-task"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="[id]/expense/[expenseId]"
+        options={{
+          headerShown: false,
+        }}
+      />
+    </Stack>
+  );
 }

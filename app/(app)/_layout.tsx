@@ -11,10 +11,12 @@ export default function AppLayout() {
   }
 
   return (
-    <Tabs screenOptions={{
-      tabBarActiveTintColor: "#007AFF",
-      headerShown: false,
-    }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: "#007AFF",
+        headerShown: false,
+      }}
+    >
       <Tabs.Screen
         name="home"
         options={{

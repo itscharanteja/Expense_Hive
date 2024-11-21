@@ -141,7 +141,7 @@ export default function Groups() {
       setMemberEmail("");
 
       router.push({
-        pathname: `/(group)/${groupRef.id}`,
+        pathname: "/(group)/[id]",
         params: { id: groupRef.id },
       });
     } catch (error) {
@@ -190,7 +190,7 @@ export default function Groups() {
               style={styles.groupItem}
               onPress={() =>
                 router.push({
-                  pathname: `/(group)/${item.id}`,
+                  pathname: "/(group)/[id]",
                   params: { id: item.id },
                 })
               }

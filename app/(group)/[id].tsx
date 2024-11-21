@@ -10,6 +10,9 @@ import {
   Alert,
   Modal,
   TextInput,
+  ScrollView,
+  Platform,
+  SafeAreaView,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,9 +30,11 @@ import {
   arrayUnion,
   arrayRemove,
   deleteDoc,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 type GroupExpense = {
   id: string;
@@ -39,6 +44,7 @@ type GroupExpense = {
   splitBetween: string[];
   date: Date;
   settled: boolean;
+  receiptId?: string;
 };
 
 type GroupTask = {
@@ -56,6 +62,28 @@ type GroupDetails = {
   createdBy: string;
 };
 
+type GroupReminder = {
+  id: string;
+  title: string;
+  dueDate: Date;
+  createdBy: string;
+  createdAt: Date;
+  completed: boolean;
+};
+
+const getDueColor = (dueDate: Date) => {
+  const now = new Date();
+  const diffHours = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  if (diffHours < 0) {
+    return "#FF3B30"; // Red for overdue
+  } else if (diffHours <= 6) {
+    return "#FF9500"; // Orange for due within 6 hours
+  } else {
+    return "#34C759"; // Green for due later
+  }
+};
+
 export default function GroupDetails() {
   const { id } = useLocalSearchParams();
   const { user } = useAuth();
@@ -63,10 +91,15 @@ export default function GroupDetails() {
   const [group, setGroup] = useState<GroupDetails | null>(null);
   const [expenses, setExpenses] = useState<GroupExpense[]>([]);
   const [tasks, setTasks] = useState<GroupTask[]>([]);
-  const [balances, setBalances] = useState<Record<string, number>>({});
+  const [totalGroupExpense, setTotalGroupExpense] = useState(0);
   const [memberModalVisible, setMemberModalVisible] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [addingMember, setAddingMember] = useState(false);
+  const [reminders, setReminders] = useState<GroupReminder[]>([]);
+  const [reminderModalVisible, setReminderModalVisible] = useState(false);
+  const [newReminder, setNewReminder] = useState("");
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -99,8 +132,15 @@ export default function GroupDetails() {
         ...doc.data(),
         date: doc.data().date.toDate(),
       })) as GroupExpense[];
+
+      // Calculate total group expense
+      const total = expensesData.reduce(
+        (sum, expense) => sum + expense.amount,
+        0
+      );
+      setTotalGroupExpense(total);
+
       setExpenses(expensesData);
-      calculateBalances(expensesData);
     });
 
     // Listen to group tasks
@@ -118,35 +158,32 @@ export default function GroupDetails() {
       setTasks(tasksData);
     });
 
+    // Listen to group reminders
+    const remindersQuery = query(
+      collection(db, "groupReminders"),
+      where("groupId", "==", id),
+      orderBy("dueDate", "asc")
+    );
+
+    const unsubscribeReminders = onSnapshot(remindersQuery, (snapshot) => {
+      const remindersData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        dueDate: doc.data().dueDate.toDate(),
+        createdAt: doc.data().createdAt.toDate(),
+      })) as GroupReminder[];
+      setReminders(remindersData);
+    });
+
     fetchGroup();
     setLoading(false);
 
     return () => {
       unsubscribeExpenses();
       unsubscribeTasks();
+      unsubscribeReminders();
     };
   }, [id, user]);
-
-  const calculateBalances = (groupExpenses: GroupExpense[]) => {
-    const newBalances: Record<string, number> = {};
-
-    groupExpenses.forEach((expense) => {
-      if (expense.settled) return;
-
-      const amountPerPerson = expense.amount / expense.splitBetween.length;
-      expense.splitBetween.forEach((memberId) => {
-        if (memberId === expense.paidBy) {
-          newBalances[memberId] =
-            (newBalances[memberId] || 0) + expense.amount - amountPerPerson;
-        } else {
-          newBalances[memberId] =
-            (newBalances[memberId] || 0) - amountPerPerson;
-        }
-      });
-    });
-
-    setBalances(newBalances);
-  };
 
   const toggleTaskStatus = async (taskId: string, completed: boolean) => {
     try {
@@ -218,21 +255,39 @@ export default function GroupDetails() {
     }
   };
 
-  const removeMember = async (email: string) => {
-    if (email === group?.createdBy) {
-      Alert.alert("Error", "Cannot remove the group creator");
-      return;
-    }
+  const removeMember = async (memberEmail: string) => {
+    Alert.alert(
+      "Remove Member",
+      `Are you sure you want to remove ${memberEmail} from the group?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (!group) return;
 
-    try {
-      const groupRef = doc(db, "groups", id as string);
-      await updateDoc(groupRef, {
-        members: arrayRemove(email),
-      });
-      Alert.alert("Success", "Member removed successfully");
-    } catch (error) {
-      Alert.alert("Error", "Failed to remove member");
-    }
+              const updatedMembers = group.members.filter(
+                (email) => email !== memberEmail
+              );
+
+              await updateDoc(doc(db, "groups", id as string), {
+                members: updatedMembers,
+              });
+
+              Alert.alert("Success", "Member removed successfully");
+            } catch (error) {
+              console.error("Error removing member:", error);
+              Alert.alert("Error", "Failed to remove member");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleLongPressExpense = (expense: GroupExpense) => {
@@ -249,6 +304,23 @@ export default function GroupDetails() {
           style: "destructive",
           onPress: async () => {
             try {
+              // First delete the receipt if it exists
+              if (expense.receiptId) {
+                try {
+                  // Get receipt document to ensure it exists
+                  const receiptRef = doc(db, "receipts", expense.receiptId);
+                  const receiptDoc = await getDoc(receiptRef);
+
+                  if (receiptDoc.exists()) {
+                    await deleteDoc(receiptRef);
+                  }
+                } catch (error) {
+                  console.error("Error deleting receipt:", error);
+                  // Continue with expense deletion even if receipt deletion fails
+                }
+              }
+
+              // Then delete the expense
               await deleteDoc(doc(db, "groupExpenses", expense.id));
               Alert.alert("Success", "Expense deleted successfully");
             } catch (error) {
@@ -283,6 +355,58 @@ export default function GroupDetails() {
     ]);
   };
 
+  const addReminder = async () => {
+    if (!user || !id || !newReminder.trim()) {
+      Alert.alert("Error", "Please enter a reminder");
+      return;
+    }
+
+    try {
+      const reminderData = {
+        title: newReminder.trim(),
+        dueDate: Timestamp.fromDate(selectedDate),
+        createdBy: user.email,
+        createdAt: Timestamp.now(),
+        groupId: id,
+        completed: false,
+      };
+
+      await addDoc(collection(db, "groupReminders"), reminderData);
+      setReminderModalVisible(false);
+      setNewReminder("");
+      setSelectedDate(new Date());
+      Alert.alert("Success", "Reminder added successfully");
+    } catch (error) {
+      console.error("Error adding reminder:", error);
+      Alert.alert("Error", "Failed to add reminder");
+    }
+  };
+
+  const toggleReminderStatus = async (
+    reminderId: string,
+    completed: boolean
+  ) => {
+    try {
+      await updateDoc(doc(db, "groupReminders", reminderId), { completed });
+    } catch (error) {
+      console.error("Error updating reminder:", error);
+      Alert.alert("Error", "Failed to update reminder");
+    }
+  };
+
+  const showDatePicker = () => {
+    setDatePickerVisible(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisible(false);
+  };
+
+  const handleConfirm = (date: Date) => {
+    setSelectedDate(date);
+    hideDatePicker();
+  };
+
   if (loading || !group) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -292,146 +416,157 @@ export default function GroupDetails() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>{group.name}</Text>
+        <Text style={styles.title}>{group?.name}</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Balances</Text>
+      <ScrollView
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.totalExpenseContainer}>
+          <Text style={styles.totalExpenseLabel}>Total Group Expense</Text>
+          <Text style={styles.totalExpenseAmount}>
+            {totalGroupExpense.toFixed(2)} kr
+          </Text>
         </View>
-        {Object.entries(balances).map(([memberId, amount]) => (
-          <View key={memberId} style={styles.balanceItem}>
-            <Text>{memberId}</Text>
-            <Text style={amount >= 0 ? styles.positive : styles.negative}>
-              ${Math.abs(amount).toFixed(2)}{" "}
-              {amount >= 0 ? "to receive" : "to pay"}
-            </Text>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Expenses</Text>
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/(group)/[id]/add-expense",
+                  params: { id: id as string },
+                })
+              }
+              style={styles.addButton}
+            >
+              <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
           </View>
-        ))}
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Expenses</Text>
-          <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: "/[id]/add-expense" as const,
-                params: { id: id as string },
-              })
-            }
-            style={styles.addButton}
-          >
-            <Ionicons name="add" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={expenses}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.expenseItem}
-              onLongPress={() => handleLongPressExpense(item)}
-              delayLongPress={500}
-            >
-              <View>
-                <Text style={styles.expenseDescription}>
-                  {item.description}
-                </Text>
-                <Text style={styles.expenseDetails}>
-                  Paid by {item.paidBy} • {item.date.toLocaleDateString()}
-                </Text>
-              </View>
-              <Text style={styles.expenseAmount}>
-                ${item.amount.toFixed(2)}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Tasks</Text>
-          <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: "/[id]/add-task" as const,
-                params: { id: id as string },
-              })
-            }
-            style={styles.addButton}
-          >
-            <Ionicons name="add" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={tasks}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.taskItem}
-              onPress={() => toggleTaskStatus(item.id, !item.completed)}
-              onLongPress={() => handleLongPressTask(item)}
-              delayLongPress={500}
-            >
-              <Ionicons
-                name={item.completed ? "checkbox" : "square-outline"}
-                size={24}
-                color="#007AFF"
-              />
-              <View style={styles.taskContent}>
-                <Text
-                  style={[
-                    styles.taskTitle,
-                    item.completed && styles.taskCompleted,
-                  ]}
-                >
-                  {item.title}
-                </Text>
-                <Text style={styles.taskDetails}>
-                  Assigned to {item.assignedTo} • Due{" "}
-                  {item.dueDate.toLocaleDateString()}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Members</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setMemberModalVisible(true)}
-          >
-            <Ionicons name="person-add" size={20} color="white" />
-          </TouchableOpacity>
-        </View>
-        {group.members.map((email) => (
-          <View key={email} style={styles.memberItem}>
-            <Text style={styles.memberEmail}>{email}</Text>
-            {email !== group.createdBy && user?.email === group.createdBy && (
+          <FlatList
+            data={expenses}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
               <TouchableOpacity
-                onPress={() => removeMember(email)}
-                style={styles.removeButton}
+                style={styles.expenseItem}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(group)/[id]/expense/[expenseId]",
+                    params: { id: id as string, expenseId: item.id },
+                  })
+                }
+                onLongPress={() => handleLongPressExpense(item)}
+                delayLongPress={500}
               >
-                <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                <View>
+                  <Text style={styles.expenseDescription}>
+                    {item.description}
+                  </Text>
+                  <Text style={styles.expenseDate}>
+                    {item.date.toLocaleDateString()}
+                  </Text>
+                  <Text style={styles.paidByText}>Paid by {item.paidBy}</Text>
+                </View>
+                <Text style={styles.expenseAmount}>
+                  ${item.amount.toFixed(2)}
+                </Text>
               </TouchableOpacity>
             )}
-            {email === group.createdBy && (
-              <Text style={styles.adminBadge}>Admin</Text>
-            )}
+            scrollEnabled={false}
+            nestedScrollEnabled={true}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Tasks</Text>
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/(group)/[id]/add-task",
+                  params: { id: id as string },
+                })
+              }
+              style={styles.addButton}
+            >
+              <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
           </View>
-        ))}
-      </View>
+          <FlatList
+            data={tasks}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.taskItem}
+                onPress={() => toggleTaskStatus(item.id, !item.completed)}
+                onLongPress={() => handleLongPressTask(item)}
+                delayLongPress={500}
+              >
+                <Ionicons
+                  name={item.completed ? "checkbox" : "square-outline"}
+                  size={24}
+                  color="#007AFF"
+                />
+                <View style={styles.taskContent}>
+                  <Text
+                    style={[
+                      styles.taskTitle,
+                      item.completed && styles.taskCompleted,
+                    ]}
+                  >
+                    {item.title}
+                  </Text>
+                  <Text style={styles.taskDetails}>
+                    Assigned to {item.assignedTo} • Due{" "}
+                    {item.dueDate.toLocaleDateString()}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            scrollEnabled={false}
+            nestedScrollEnabled={true}
+          />
+        </View>
+
+        <View style={[styles.section, { marginBottom: 40 }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Members</Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setMemberModalVisible(true)}
+            >
+              <Ionicons name="person-add" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+          {group?.members.map((email) => (
+            <View key={email} style={styles.memberItem}>
+              <Text style={styles.memberEmail}>{email}</Text>
+              {email !== group.createdBy && user?.email === group.createdBy && (
+                <TouchableOpacity
+                  onPress={() => removeMember(email)}
+                  style={styles.removeButton}
+                >
+                  <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                </TouchableOpacity>
+              )}
+              {email === group.createdBy && (
+                <Text style={styles.adminBadge}>Admin</Text>
+              )}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
 
       <Modal
         visible={memberModalVisible}
@@ -481,28 +616,94 @@ export default function GroupDetails() {
           </View>
         </View>
       </Modal>
-    </View>
+
+      <Modal
+        visible={reminderModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setReminderModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Reminder</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Enter reminder"
+              value={newReminder}
+              onChangeText={setNewReminder}
+              multiline
+            />
+
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={showDatePicker}
+            >
+              <Text style={styles.datePickerButtonText}>
+                Due: {selectedDate.toLocaleString()}
+              </Text>
+            </TouchableOpacity>
+
+            <DateTimePickerModal
+              isVisible={isDatePickerVisible}
+              mode="datetime"
+              onConfirm={handleConfirm}
+              onCancel={hideDatePicker}
+              date={selectedDate}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => {
+                  setReminderModalVisible(false);
+                  setNewReminder("");
+                  setSelectedDate(new Date());
+                }}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.addButton]}
+                onPress={addReminder}
+              >
+                <Text style={styles.buttonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  backButton: {
+    padding: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  scrollContainer: {
+    flex: 1,
     padding: 20,
   },
   centerContent: {
     justifyContent: "center",
     alignItems: "center",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
   },
   section: {
     marginBottom: 20,
@@ -525,20 +726,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  balanceItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 10,
-    backgroundColor: "white",
-    borderRadius: 5,
-    marginBottom: 5,
-  },
-  positive: {
-    color: "green",
-  },
-  negative: {
-    color: "red",
-  },
   expenseItem: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -548,7 +735,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 4, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
@@ -556,10 +743,17 @@ const styles = StyleSheet.create({
   expenseDescription: {
     fontSize: 16,
     fontWeight: "500",
+    marginBottom: 4,
   },
-  expenseDetails: {
+  expenseDate: {
     fontSize: 14,
     color: "#666",
+    marginBottom: 4,
+  },
+  paidByText: {
+    fontSize: 14,
+    color: "#007AFF",
+    fontStyle: "italic",
   },
   expenseAmount: {
     fontSize: 18,
@@ -674,5 +868,86 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "white",
     fontWeight: "bold",
+  },
+  totalExpenseContainer: {
+    backgroundColor: "#f8f8f8",
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  totalExpenseLabel: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 8,
+  },
+  totalExpenseAmount: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#007AFF",
+  },
+  reminderItem: {
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  completedReminder: {
+    opacity: 0.7,
+  },
+  reminderContent: {
+    flex: 1,
+  },
+  reminderHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  reminderTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  reminderDetails: {
+    gap: 4,
+  },
+  reminderDueDate: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  reminderCreatedBy: {
+    fontSize: 12,
+    color: "#666",
+  },
+  noRemindersText: {
+    textAlign: "center",
+    color: "#666",
+    padding: 20,
+  },
+  datePickerButton: {
+    backgroundColor: "#f0f0f0",
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  datePickerButtonText: {
+    color: "#007AFF",
+    textAlign: "center",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    marginTop: 20,
   },
 });

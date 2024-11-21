@@ -10,8 +10,8 @@ import {
 import { router } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
-import { db } from "../config/firebase";
-import { useAuth } from "../context/auth";
+import { db } from "./config/firebase";
+import { useAuth } from "./context/auth";
 
 const categories = [
   "Food & Drinks",

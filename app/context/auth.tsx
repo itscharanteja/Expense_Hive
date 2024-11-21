@@ -6,99 +6,61 @@ import {
   onAuthStateChanged,
   User,
 } from "firebase/auth";
-import { doc, setDoc, collection, getDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  collection,
+  getDoc,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../config/firebase";
 
+type UserData = {
+  uid: string;
+  email: string;
+  username: string;
+};
+
 type AuthContextType = {
   user: User | null;
+  userData: UserData | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, username: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_KEY = "@auth_user";
+const CREDS_KEY = "@auth_creds";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to ensure user document exists
-  const ensureUserDocument = async (user: User) => {
-    try {
-      const userDocRef = doc(collection(db, "users"), user.uid);
-      const emailDocRef = doc(
-        collection(db, "users"),
-        user.email?.toLowerCase() || ""
-      );
-
-      const userDoc = await getDoc(userDocRef);
-      const emailDoc = await getDoc(emailDocRef);
-
-      if (!userDoc.exists()) {
-        await setDoc(userDocRef, {
-          email: user.email?.toLowerCase(),
-          uid: user.uid,
-          createdAt: new Date(),
-        });
-      }
-
-      if (!emailDoc.exists() && user.email) {
-        await setDoc(emailDocRef, {
-          email: user.email.toLowerCase(),
-          uid: user.uid,
-          createdAt: new Date(),
-        });
-      }
-    } catch (error) {
-      console.error("Error ensuring user document:", error);
-    }
-  };
-
-  // Load saved auth state when app starts
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Set up Firebase auth state listener
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-          if (firebaseUser) {
-            try {
-              await ensureUserDocument(firebaseUser);
-              setUser(firebaseUser);
-              // Save user data to AsyncStorage
-              const userData = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                // Add any other user data you want to persist
-              };
-              await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
-            } catch (error) {
-              console.error("Error saving auth state:", error);
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            // Fetch user data including username
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+              const userData = userDoc.data() as UserData;
+              setUserData(userData);
             }
+            setUser(user);
           } else {
             setUser(null);
-            // Clear saved auth data
-            await AsyncStorage.removeItem(AUTH_KEY);
+            setUserData(null);
           }
           setLoading(false);
         });
-
-        // Check for saved auth data
-        const savedAuth = await AsyncStorage.getItem(AUTH_KEY);
-        if (savedAuth) {
-          const userData = JSON.parse(savedAuth);
-          // This will trigger the onAuthStateChanged listener above
-          await signInWithEmailAndPassword(
-            auth,
-            userData.email,
-            userData.password
-          );
-        } else {
-          setLoading(false);
-        }
 
         return () => unsubscribe();
       } catch (error) {
@@ -119,13 +81,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password
       );
       await ensureUserDocument(userCredential.user);
-      // Save credentials for auto-login
-      const userData = {
-        email,
-        password, // Note: In a production app, consider encryption
-        uid: userCredential.user.uid,
-      };
-      await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+      // Save credentials securely
+      await AsyncStorage.setItem(
+        CREDS_KEY,
+        JSON.stringify({ email, password })
+      );
     } catch (error) {
       throw error;
     } finally {
@@ -133,22 +93,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, username: string) => {
     try {
       setLoading(true);
+
+      // Check if username is already taken
+      const usernameQuery = query(
+        collection(db, "users"),
+        where("username", "==", username.toLowerCase())
+      );
+      const usernameSnapshot = await getDocs(usernameQuery);
+
+      if (!usernameSnapshot.empty) {
+        throw new Error("Username is already taken");
+      }
+
+      // Create auth user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
-      await ensureUserDocument(userCredential.user);
-      // Save credentials for auto-login
+
+      // Create user document with username
       const userData = {
-        email,
-        password, // Note: In a production app, consider encryption
         uid: userCredential.user.uid,
+        email: email.toLowerCase(),
+        username: username.toLowerCase(),
+        createdAt: new Date(),
       };
-      await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+
+      await setDoc(doc(db, "users", userCredential.user.uid), userData);
+      setUserData(userData);
     } catch (error) {
       throw error;
     } finally {
@@ -160,7 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       await firebaseSignOut(auth);
+      // Clear all saved data
       await AsyncStorage.removeItem(AUTH_KEY);
+      await AsyncStorage.removeItem(CREDS_KEY);
       setUser(null);
     } catch (error) {
       throw error;
@@ -170,7 +148,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ user, userData, loading, signIn, signUp, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -183,3 +163,11 @@ export function useAuth() {
   }
   return context;
 }
+
+// Add a default export
+const AuthModule = {
+  AuthProvider,
+  useAuth,
+};
+
+export default AuthModule;
