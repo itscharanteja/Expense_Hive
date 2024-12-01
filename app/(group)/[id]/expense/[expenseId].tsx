@@ -109,6 +109,10 @@ export default function ExpenseDetails() {
 
   const amountPerPerson = expense.amount / expense.splitBetween.length;
 
+  function togglePaidStatus(email: string): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>

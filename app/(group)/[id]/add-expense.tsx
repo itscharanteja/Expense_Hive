@@ -11,13 +11,23 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { collection, addDoc, Timestamp, getDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  Timestamp,
+  getDoc,
+  doc,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../context/auth";
 import { Ionicons } from "@expo/vector-icons";
 
 type Member = {
   email: string;
+  username: string;
   selected: boolean;
 };
 
@@ -37,12 +47,24 @@ export default function AddGroupExpense() {
       try {
         const groupDoc = await getDoc(doc(db, "groups", id as string));
         if (groupDoc.exists()) {
-          const groupData = groupDoc.data();
-          const membersList = groupData.members.map((email: string) => ({
-            email,
-            selected: true,
-          }));
-          setMembers(membersList);
+          const memberEmails = groupDoc.data().members;
+
+          const membersWithUsernames: Member[] = [];
+          for (const email of memberEmails) {
+            const userQuery = query(
+              collection(db, "users"),
+              where("email", "==", email)
+            );
+            const userSnapshot = await getDocs(userQuery);
+            if (!userSnapshot.empty) {
+              membersWithUsernames.push({
+                email: email,
+                username: userSnapshot.docs[0].data().username,
+                selected: true,
+              });
+            }
+          }
+          setMembers(membersWithUsernames);
         }
       } catch (error) {
         console.error("Error fetching group members:", error);
@@ -209,10 +231,28 @@ export default function AddGroupExpense() {
     }
   };
 
+  const handleBack = () => {
+    Alert.alert(
+      "Discard Changes",
+      "Are you sure you want to go back? Any unsaved changes will be lost.",
+      [
+        {
+          text: "Stay",
+          style: "cancel",
+        },
+        {
+          text: "Discard",
+          style: "destructive",
+          onPress: () => router.back(),
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.title}>Add Group Expense</Text>
@@ -248,11 +288,11 @@ export default function AddGroupExpense() {
           >
             <Text
               style={[
-                styles.memberEmail,
-                member.selected && styles.memberEmailSelected,
+                styles.memberUsername,
+                member.selected && styles.memberUsernameSelected,
               ]}
             >
-              {member.email}
+              @{member.username}
             </Text>
             <Ionicons
               name={member.selected ? "checkmark-circle" : "ellipse-outline"}
@@ -326,12 +366,18 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+    backgroundColor: "#fff",
+  },
+  backButton: {
+    padding: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
   },
   input: {
@@ -360,13 +406,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   memberItemSelected: {
-    backgroundColor: "#e3f2fd",
+    backgroundColor: "#E3F2FD",
   },
-  memberEmail: {
+  memberUsername: {
     fontSize: 16,
     color: "#333",
   },
-  memberEmailSelected: {
+  memberUsernameSelected: {
     color: "#007AFF",
     fontWeight: "500",
   },

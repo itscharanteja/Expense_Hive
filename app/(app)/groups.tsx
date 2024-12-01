@@ -2,27 +2,29 @@ import { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
+  TextInput,
   TouchableOpacity,
+  StyleSheet,
+  Alert,
   FlatList,
   Modal,
-  TextInput,
-  Alert,
-  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import {
   collection,
   addDoc,
+  writeBatch,
+  doc,
+  Timestamp,
   query,
   where,
-  onSnapshot,
-  Timestamp,
   getDocs,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
-import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
 
 type Group = {
   id: string;
@@ -33,134 +35,145 @@ type Group = {
 };
 
 export default function Groups() {
+  const { user, userData } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
-  const [memberEmail, setMemberEmail] = useState("");
-  const [members, setMembers] = useState<string[]>([]);
-  const [addingMember, setAddingMember] = useState(false);
-  const { user } = useAuth();
+  const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    fetchGroups();
+  }, [user]);
+
+  const fetchGroups = async () => {
     if (!user) return;
 
-    const groupsQuery = query(
-      collection(db, "groups"),
-      where("members", "array-contains", user.email)
-    );
-
-    const unsubscribe = onSnapshot(groupsQuery, (snapshot) => {
+    try {
+      const groupsQuery = query(
+        collection(db, "groups"),
+        where("members", "array-contains", user.email)
+      );
+      const snapshot = await getDocs(groupsQuery);
       const groupsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt.toDate(),
       })) as Group[];
+
       setGroups(groupsData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  const checkUserExists = async (email: string): Promise<boolean> => {
-    try {
-      const usersRef = collection(db, "users");
-      const q = query(
-        usersRef,
-        where("email", "==", email.toLowerCase().trim())
-      );
-      const querySnapshot = await getDocs(q);
-      return !querySnapshot.empty;
     } catch (error) {
-      console.error("Error checking user existence:", error);
-      return false;
+      console.error("Error fetching groups:", error);
+      Alert.alert("Error", "Failed to load groups");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const addMember = async () => {
-    const email = memberEmail.toLowerCase().trim();
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchGroups();
+  }, []);
 
-    if (!email) {
+  const handleAddMember = () => {
+    if (!newMemberEmail.trim()) {
       Alert.alert("Error", "Please enter an email address");
       return;
     }
 
-    if (members.includes(email)) {
-      Alert.alert("Error", "This member is already added");
+    const email = newMemberEmail.toLowerCase().trim();
+    if (selectedMembers.includes(email)) {
+      Alert.alert("Error", "Member already added");
       return;
     }
 
     if (email === user?.email) {
-      Alert.alert("Error", "You are automatically added to the group");
-      setMemberEmail("");
+      Alert.alert("Error", "You are already a member");
       return;
     }
 
-    setAddingMember(true);
-
-    try {
-      const userExists = await checkUserExists(email);
-
-      if (!userExists) {
-        Alert.alert(
-          "Error",
-          "This user is not registered with ExpenseHive. Please invite them to join first."
-        );
-        setMemberEmail("");
-      } else {
-        setMembers([...members, email]);
-        setMemberEmail("");
-      }
-    } catch (error) {
-      Alert.alert("Error", "Failed to verify user");
-    } finally {
-      setAddingMember(false);
-    }
+    setSelectedMembers([...selectedMembers, email]);
+    setNewMemberEmail("");
   };
 
   const handleCreateGroup = async () => {
-    if (!user || !newGroupName.trim()) {
+    if (!user || !userData) return;
+
+    if (!newGroupName.trim()) {
       Alert.alert("Error", "Please enter a group name");
       return;
     }
 
     try {
-      const allMembers = [...new Set([...members, user.email])];
-      const groupData = {
+      setIsSubmitting(true);
+      const initialMembers = [user.email, ...selectedMembers];
+
+      const groupRef = await addDoc(collection(db, "groups"), {
         name: newGroupName.trim(),
         createdBy: user.email,
-        members: allMembers,
+        members: initialMembers,
         createdAt: Timestamp.now(),
-      };
+      });
 
-      const groupRef = await addDoc(collection(db, "groups"), groupData);
-      setModalVisible(false);
+      const batch = writeBatch(db);
+      selectedMembers.forEach((memberEmail) => {
+        const notificationRef = doc(collection(db, "notifications"));
+        batch.set(notificationRef, {
+          type: "GROUP_ADDITION",
+          groupId: groupRef.id,
+          groupName: newGroupName.trim(),
+          createdBy: user.email,
+          createdByUsername: userData.username,
+          recipientEmail: memberEmail,
+          createdAt: Timestamp.now(),
+          read: false,
+        });
+      });
+
+      await batch.commit();
+
+      // Reset form and close modal
       setNewGroupName("");
-      setMembers([]);
-      setMemberEmail("");
+      setSelectedMembers([]);
+      setModalVisible(false);
 
+      // Navigate to new group
       router.push({
         pathname: "/(group)/[id]",
         params: { id: groupRef.id },
       });
-    } catch (error) {
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to create group");
       console.error("Error creating group:", error);
-      Alert.alert("Error", "Failed to create group");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const removeMember = (email: string) => {
-    setMembers(members.filter((m) => m !== email));
-  };
-
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#007AFF" />
+  const renderGroup = ({ item }: { item: Group }) => (
+    <TouchableOpacity
+      style={styles.groupItem}
+      onPress={() =>
+        router.push({
+          pathname: "/(group)/[id]",
+          params: { id: item.id },
+        })
+      }
+    >
+      <View>
+        <Text style={styles.groupName}>{item.name}</Text>
+        <Text style={styles.memberCount}>
+          {item.members.length}{" "}
+          {item.members.length === 1 ? "member" : "members"}
+        </Text>
       </View>
-    );
-  }
+      <Ionicons name="chevron-forward" size={24} color="#666" />
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -174,114 +187,105 @@ export default function Groups() {
         </TouchableOpacity>
       </View>
 
-      {groups.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No groups yet</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Create a group to split expenses with friends
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={groups}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.groupItem}
-              onPress={() =>
-                router.push({
-                  pathname: "/(group)/[id]",
-                  params: { id: item.id },
-                })
-              }
-            >
-              <View>
-                <Text style={styles.groupName}>{item.name}</Text>
-                <Text style={styles.groupMembers}>
-                  {item.members.length} members
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color="#666" />
-            </TouchableOpacity>
-          )}
-        />
-      )}
+      <FlatList
+        data={groups}
+        renderItem={renderGroup}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#007AFF"
+            title="Pull to refresh"
+          />
+        }
+        ListEmptyComponent={
+          !loading && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No groups yet</Text>
+              <Text style={styles.emptyStateSubtext}>
+                Tap the + button to create a group
+              </Text>
+            </View>
+          )
+        }
+      />
 
       <Modal
-        animationType="slide"
-        transparent={true}
         visible={modalVisible}
+        animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={24} color="#666" />
+            </TouchableOpacity>
             <Text style={styles.modalTitle}>Create New Group</Text>
+            <View style={{ width: 24 }} />
+          </View>
 
+          <View style={styles.formContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Group Name"
+              placeholder="Enter group name"
               value={newGroupName}
               onChangeText={setNewGroupName}
             />
 
-            <View style={styles.memberInput}>
+            <View style={styles.memberInputContainer}>
               <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                placeholder="Add Member Email"
-                value={memberEmail}
-                onChangeText={setMemberEmail}
-                keyboardType="email-address"
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Add member email"
+                value={newMemberEmail}
+                onChangeText={setNewMemberEmail}
                 autoCapitalize="none"
-                editable={!addingMember}
+                keyboardType="email-address"
               />
               <TouchableOpacity
-                style={[
-                  styles.addMemberButton,
-                  addingMember && styles.buttonDisabled,
-                ]}
-                onPress={addMember}
-                disabled={addingMember}
+                style={styles.addMemberButton}
+                onPress={handleAddMember}
               >
-                {addingMember ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text style={styles.addMemberButtonText}>Add</Text>
-                )}
+                <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>
             </View>
 
-            {members.length > 0 && (
-              <View style={styles.membersList}>
-                {members.map((email) => (
+            {selectedMembers.length > 0 && (
+              <View style={styles.membersContainer}>
+                {selectedMembers.map((email) => (
                   <View key={email} style={styles.memberChip}>
                     <Text style={styles.memberEmail}>{email}</Text>
-                    <TouchableOpacity onPress={() => removeMember(email)}>
-                      <Ionicons name="close-circle" size={20} color="#666" />
+                    <TouchableOpacity
+                      onPress={() =>
+                        setSelectedMembers((members) =>
+                          members.filter((m) => m !== email)
+                        )
+                      }
+                      style={styles.removeButton}
+                    >
+                      <Ionicons name="close" size={18} color="#666" />
                     </TouchableOpacity>
                   </View>
                 ))}
               </View>
             )}
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => {
-                  setModalVisible(false);
-                  setNewGroupName("");
-                  setMembers([]);
-                  setMemberEmail("");
-                }}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.createButton]}
-                onPress={handleCreateGroup}
-              >
-                <Text style={styles.buttonText}>Create</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={[
+                styles.createButton,
+                isSubmitting && styles.buttonDisabled,
+              ]}
+              onPress={handleCreateGroup}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.buttonText}>
+                {isSubmitting ? "Creating..." : "Create Group"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -292,13 +296,15 @@ export default function Groups() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   title: {
     fontSize: 24,
@@ -312,123 +318,121 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: "#666",
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
+  list: {
+    padding: 20,
   },
   groupItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 15,
+    padding: 16,
     backgroundColor: "white",
-    borderRadius: 10,
-    marginBottom: 10,
+    borderRadius: 12,
+    marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
   },
   groupName: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
+    marginBottom: 4,
   },
-  groupMembers: {
+  memberCount: {
     fontSize: 14,
     color: "#666",
-    marginTop: 4,
   },
   modalContainer: {
     flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    padding: 20,
+    backgroundColor: "#fff",
   },
-  modalContent: {
-    backgroundColor: "white",
-    borderRadius: 10,
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  closeButton: {
+    padding: 8,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
+  },
+  formContainer: {
+    padding: 20,
+    gap: 15,
+  },
+  memberInputContainer: {
+    flexDirection: "row",
+    gap: 10,
   },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
-  },
-  memberInput: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 15,
+    padding: 15,
+    borderRadius: 8,
+    fontSize: 16,
   },
   addMemberButton: {
     backgroundColor: "#007AFF",
-    padding: 10,
-    borderRadius: 5,
+    padding: 15,
+    borderRadius: 8,
+    justifyContent: "center",
   },
-  addMemberButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  membersList: {
-    marginBottom: 15,
+  membersContainer: {
+    gap: 8,
   },
   memberChip: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f0f0f0",
-    padding: 8,
+    padding: 10,
     borderRadius: 20,
-    marginBottom: 5,
   },
   memberEmail: {
     flex: 1,
-    marginRight: 10,
+    marginRight: 8,
   },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  button: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  cancelButton: {
-    backgroundColor: "#FF3B30",
+  removeButton: {
+    padding: 4,
   },
   createButton: {
     backgroundColor: "#007AFF",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
   },
   buttonText: {
     color: "white",
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "600",
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 40,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: "#999",
   },
 });

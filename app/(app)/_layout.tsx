@@ -53,6 +53,12 @@ export default function AppLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="add-expense"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

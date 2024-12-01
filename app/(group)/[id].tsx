@@ -13,6 +13,7 @@ import {
   ScrollView,
   Platform,
   SafeAreaView,
+  SectionList,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +32,7 @@ import {
   arrayRemove,
   deleteDoc,
   orderBy,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
@@ -58,8 +60,8 @@ type GroupTask = {
 type GroupDetails = {
   id: string;
   name: string;
-  members: string[];
   createdBy: string;
+  members: string[];
 };
 
 type GroupReminder = {
@@ -69,6 +71,12 @@ type GroupReminder = {
   createdBy: string;
   createdAt: Date;
   completed: boolean;
+};
+
+type Section = {
+  title: string;
+  data: any[];
+  renderItem: ({ item }: { item: any }) => JSX.Element;
 };
 
 const getDueColor = (dueDate: Date) => {
@@ -85,15 +93,15 @@ const getDueColor = (dueDate: Date) => {
 };
 
 export default function GroupDetails() {
+  const { user, userData } = useAuth();
   const { id } = useLocalSearchParams();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [group, setGroup] = useState<GroupDetails | null>(null);
   const [expenses, setExpenses] = useState<GroupExpense[]>([]);
   const [tasks, setTasks] = useState<GroupTask[]>([]);
   const [totalGroupExpense, setTotalGroupExpense] = useState(0);
   const [memberModalVisible, setMemberModalVisible] = useState(false);
-  const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [memberEmail, setMemberEmail] = useState("");
   const [addingMember, setAddingMember] = useState(false);
   const [reminders, setReminders] = useState<GroupReminder[]>([]);
   const [reminderModalVisible, setReminderModalVisible] = useState(false);
@@ -209,46 +217,48 @@ export default function GroupDetails() {
     }
   };
 
-  const addMember = async () => {
-    const email = newMemberEmail.toLowerCase().trim();
-
-    if (!email) {
-      Alert.alert("Error", "Please enter an email address");
-      return;
-    }
-
-    if (group?.members.includes(email)) {
-      Alert.alert("Error", "This member is already in the group");
-      return;
-    }
-
-    if (email === user?.email) {
-      Alert.alert("Error", "You are already a member of this group");
-      setNewMemberEmail("");
-      return;
-    }
-
-    setAddingMember(true);
+  const handleAddMember = async () => {
+    if (!group || !memberEmail || !user || !userData) return;
 
     try {
-      const userExists = await checkUserExists(email);
+      setAddingMember(true);
+      // First check if user exists
+      const usersRef = collection(db, "users");
+      const userQuery = query(
+        usersRef,
+        where("email", "==", memberEmail.toLowerCase())
+      );
+      const userSnapshot = await getDocs(userQuery);
 
-      if (!userExists) {
-        Alert.alert(
-          "Error",
-          "This user is not registered with ExpenseHive. Please invite them to join first."
-        );
-        setNewMemberEmail("");
-      } else {
-        // Update group members in Firestore
-        const groupRef = doc(db, "groups", id as string);
-        await updateDoc(groupRef, {
-          members: arrayUnion(email),
-        });
-        setNewMemberEmail("");
-        Alert.alert("Success", "Member added successfully");
+      if (userSnapshot.empty) {
+        Alert.alert("Error", "User not found");
+        return;
       }
+
+      // Update group members
+      await updateDoc(doc(db, "groups", id as string), {
+        members: arrayUnion(memberEmail.toLowerCase()),
+      });
+
+      // Create notification for the added user
+      const notificationData = {
+        type: "GROUP_ADDITION",
+        groupId: id,
+        groupName: group.name,
+        addedBy: user.email,
+        addedByUsername: userData.username,
+        recipientEmail: memberEmail.toLowerCase(),
+        createdAt: Timestamp.now(),
+        read: false,
+      };
+
+      await addDoc(collection(db, "notifications"), notificationData);
+
+      setMemberEmail(""); // Clear input
+      setMemberModalVisible(false);
+      Alert.alert("Success", "Member added successfully");
     } catch (error) {
+      console.error("Error adding member:", error);
       Alert.alert("Error", "Failed to add member");
     } finally {
       setAddingMember(false);
@@ -407,6 +417,259 @@ export default function GroupDetails() {
     hideDatePicker();
   };
 
+  const handleDeleteGroup = async () => {
+    if (!group || !user) return;
+
+    // Only group creator can delete the group
+    if (group.createdBy !== user.email) {
+      Alert.alert("Error", "Only group creator can delete the group");
+      return;
+    }
+
+    Alert.alert(
+      "Delete Group",
+      "Are you sure you want to delete this group? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const batch = writeBatch(db);
+
+              // Delete all group expenses
+              const expensesQuery = query(
+                collection(db, "groupExpenses"),
+                where("groupId", "==", id)
+              );
+              const expensesDocs = await getDocs(expensesQuery);
+              expensesDocs.forEach((doc) => {
+                batch.delete(doc.ref);
+              });
+
+              // Delete all group tasks
+              const tasksQuery = query(
+                collection(db, "groupTasks"),
+                where("groupId", "==", id)
+              );
+              const tasksDocs = await getDocs(tasksQuery);
+              tasksDocs.forEach((doc) => {
+                batch.delete(doc.ref);
+              });
+
+              // Create removal notifications for all members except creator
+              const removedMembers = group.members.filter(
+                (member) => member !== user.email
+              );
+
+              removedMembers.forEach((memberEmail) => {
+                const notificationRef = doc(collection(db, "notifications"));
+                batch.set(notificationRef, {
+                  type: "GROUP_DELETION",
+                  groupName: group.name,
+                  deletedBy: user.email,
+                  deletedByUsername: userData?.username,
+                  recipientEmail: memberEmail,
+                  createdAt: Timestamp.now(),
+                  read: false,
+                });
+              });
+
+              // Delete the group document
+              batch.delete(doc(db, "groups", id as string));
+
+              // Commit all the batch operations
+              await batch.commit();
+
+              Alert.alert("Success", "Group deleted successfully", [
+                {
+                  text: "OK",
+                  onPress: () => router.back(),
+                },
+              ]);
+            } catch (error) {
+              console.error("Error deleting group:", error);
+              Alert.alert("Error", "Failed to delete group");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const sections: Section[] = [
+    {
+      title: "Expenses",
+      data: expenses,
+      renderItem: ({ item }: { item: GroupExpense }) => (
+        <TouchableOpacity
+          style={styles.expenseItem}
+          onPress={() =>
+            router.push({
+              pathname: "/(group)/[id]/expense/[expenseId]",
+              params: { id: id as string, expenseId: item.id },
+            })
+          }
+          onLongPress={() => handleLongPressExpense(item)}
+          delayLongPress={500}
+        >
+          <View>
+            <Text style={styles.expenseDescription}>{item.description}</Text>
+            <Text style={styles.expenseDate}>
+              {item.date.toLocaleDateString()}
+            </Text>
+            <Text style={styles.paidByText}>Paid by {item.paidBy}</Text>
+          </View>
+          <Text style={styles.expenseAmount}>{item.amount.toFixed(2)} kr</Text>
+        </TouchableOpacity>
+      ),
+    },
+    {
+      title: "Tasks",
+      data: tasks,
+      renderItem: ({ item }: { item: GroupTask }) => (
+        <TouchableOpacity
+          style={styles.taskItem}
+          onPress={() => toggleTaskStatus(item.id, !item.completed)}
+          onLongPress={() => handleLongPressTask(item)}
+          delayLongPress={500}
+        >
+          <Ionicons
+            name={item.completed ? "checkbox" : "square-outline"}
+            size={24}
+            color="#007AFF"
+          />
+          <View style={styles.taskContent}>
+            <Text
+              style={[styles.taskTitle, item.completed && styles.taskCompleted]}
+            >
+              {item.title}
+            </Text>
+            <Text style={styles.taskDetails}>
+              Assigned to {item.assignedTo} • Due{" "}
+              {item.dueDate.toLocaleDateString()}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ),
+    },
+    {
+      title: "Members",
+      data: group?.members || [],
+      renderItem: ({ item: memberEmail }: { item: string }) => (
+        <View style={styles.memberItem}>
+          <Text style={styles.memberEmail}>{memberEmail}</Text>
+          {memberEmail !== group?.createdBy &&
+            user?.email === group?.createdBy && (
+              <TouchableOpacity
+                onPress={() => removeMember(memberEmail)}
+                style={styles.removeButton}
+              >
+                <Ionicons name="close-circle" size={24} color="#FF3B30" />
+              </TouchableOpacity>
+            )}
+          {memberEmail === group?.createdBy && (
+            <Text style={styles.adminBadge}>Admin</Text>
+          )}
+        </View>
+      ),
+    },
+  ];
+
+  // Function to create notifications
+  const createNotification = async (
+    type: "TASK_ASSIGNED" | "GROUP_EXPENSE" | "GROUP_REMINDER",
+    data: {
+      recipientEmail: string;
+      title?: string;
+      amount?: number;
+      dueDate?: Date;
+      description?: string;
+    }
+  ) => {
+    try {
+      const notificationData = {
+        type,
+        groupId: id,
+        groupName: group?.name,
+        createdBy: user?.email,
+        createdByUsername: userData?.username,
+        createdAt: Timestamp.now(),
+        read: false,
+        // Spread data at the beginning so we can override if needed
+        ...data,
+      };
+
+      await addDoc(collection(db, "notifications"), notificationData);
+    } catch (error) {
+      console.error("Error creating notification:", error);
+    }
+  };
+
+  // Update task creation to include notification
+  const handleAddTask = async (taskData: any) => {
+    try {
+      const newTask = await addDoc(collection(db, "groupTasks"), {
+        ...taskData,
+        groupId: id,
+      });
+
+      // Create notification for assigned user
+      await createNotification("TASK_ASSIGNED", {
+        recipientEmail: taskData.assignedTo,
+        title: taskData.title,
+        dueDate: taskData.dueDate,
+      });
+    } catch (error) {
+      console.error("Error adding task:", error);
+    }
+  };
+
+  // Update expense creation to include notifications
+  const handleAddExpense = async (expenseData: any) => {
+    try {
+      const newExpense = await addDoc(collection(db, "groupExpenses"), {
+        ...expenseData,
+        groupId: id,
+      });
+
+      // Create notifications for all split members
+      for (const memberEmail of expenseData.splitBetween) {
+        if (memberEmail !== user?.email) {
+          await createNotification("GROUP_EXPENSE", {
+            recipientEmail: memberEmail,
+            amount: expenseData.amount,
+            description: expenseData.description,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error adding expense:", error);
+    }
+  };
+
+  // Update reminder creation to include notifications
+  const handleAddReminder = async (reminderData: any) => {
+    try {
+      // Create notifications for all group members
+      for (const memberEmail of group?.members || []) {
+        if (memberEmail !== user?.email) {
+          await createNotification("GROUP_REMINDER", {
+            recipientEmail: memberEmail,
+            title: reminderData.title,
+            dueDate: reminderData.dueDate,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error adding reminder:", error);
+    }
+  };
+
   if (loading || !group) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -416,203 +679,117 @@ export default function GroupDetails() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.title}>{group?.name}</Text>
-        <View style={{ width: 24 }} />
+        {group?.createdBy === user?.email && (
+          <TouchableOpacity
+            onPress={handleDeleteGroup}
+            style={styles.deleteButton}
+          >
+            <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+          </TouchableOpacity>
+        )}
       </View>
 
-      <ScrollView
-        style={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.totalExpenseContainer}>
-          <Text style={styles.totalExpenseLabel}>Total Group Expense</Text>
-          <Text style={styles.totalExpenseAmount}>
-            {totalGroupExpense.toFixed(2)} kr
-          </Text>
-        </View>
+      <View style={styles.totalExpenseContainer}>
+        <Text style={styles.totalExpenseLabel}>Total Group Expense</Text>
+        <Text style={styles.totalExpenseAmount}>
+          {totalGroupExpense.toFixed(2)} kr
+        </Text>
+      </View>
 
-        <View style={styles.section}>
+      <SectionList
+        sections={sections}
+        renderSectionHeader={({ section: { title } }) => (
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Expenses</Text>
-            <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/(group)/[id]/add-expense",
-                  params: { id: id as string },
-                })
-              }
-              style={styles.addButton}
-            >
-              <Ionicons name="add" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={expenses}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
+            <Text style={styles.sectionTitle}>{title}</Text>
+            {title === "Expenses" && (
               <TouchableOpacity
-                style={styles.expenseItem}
                 onPress={() =>
                   router.push({
-                    pathname: "/(group)/[id]/expense/[expenseId]",
-                    params: { id: id as string, expenseId: item.id },
+                    pathname: "/(group)/[id]/add-expense",
+                    params: { id: id as string },
                   })
                 }
-                onLongPress={() => handleLongPressExpense(item)}
-                delayLongPress={500}
+                style={styles.addButton}
               >
-                <View>
-                  <Text style={styles.expenseDescription}>
-                    {item.description}
-                  </Text>
-                  <Text style={styles.expenseDate}>
-                    {item.date.toLocaleDateString()}
-                  </Text>
-                  <Text style={styles.paidByText}>Paid by {item.paidBy}</Text>
-                </View>
-                <Text style={styles.expenseAmount}>
-                  ${item.amount.toFixed(2)}
-                </Text>
+                <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>
             )}
-            scrollEnabled={false}
-            nestedScrollEnabled={true}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Tasks</Text>
-            <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/(group)/[id]/add-task",
-                  params: { id: id as string },
-                })
-              }
-              style={styles.addButton}
-            >
-              <Ionicons name="add" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={tasks}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
+            {title === "Tasks" && (
               <TouchableOpacity
-                style={styles.taskItem}
-                onPress={() => toggleTaskStatus(item.id, !item.completed)}
-                onLongPress={() => handleLongPressTask(item)}
-                delayLongPress={500}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(group)/[id]/add-task",
+                    params: { id: id as string },
+                  })
+                }
+                style={styles.addButton}
               >
-                <Ionicons
-                  name={item.completed ? "checkbox" : "square-outline"}
-                  size={24}
-                  color="#007AFF"
-                />
-                <View style={styles.taskContent}>
-                  <Text
-                    style={[
-                      styles.taskTitle,
-                      item.completed && styles.taskCompleted,
-                    ]}
-                  >
-                    {item.title}
-                  </Text>
-                  <Text style={styles.taskDetails}>
-                    Assigned to {item.assignedTo} • Due{" "}
-                    {item.dueDate.toLocaleDateString()}
-                  </Text>
-                </View>
+                <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>
             )}
-            scrollEnabled={false}
-            nestedScrollEnabled={true}
-          />
-        </View>
-
-        <View style={[styles.section, { marginBottom: 40 }]}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Members</Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setMemberModalVisible(true)}
-            >
-              <Ionicons name="person-add" size={20} color="white" />
-            </TouchableOpacity>
+            {title === "Members" && (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setMemberModalVisible(true)}
+              >
+                <Ionicons name="person-add" size={20} color="white" />
+              </TouchableOpacity>
+            )}
           </View>
-          {group?.members.map((email) => (
-            <View key={email} style={styles.memberItem}>
-              <Text style={styles.memberEmail}>{email}</Text>
-              {email !== group.createdBy && user?.email === group.createdBy && (
-                <TouchableOpacity
-                  onPress={() => removeMember(email)}
-                  style={styles.removeButton}
-                >
-                  <Ionicons name="close-circle" size={24} color="#FF3B30" />
-                </TouchableOpacity>
-              )}
-              {email === group.createdBy && (
-                <Text style={styles.adminBadge}>Admin</Text>
-              )}
-            </View>
-          ))}
-        </View>
-      </ScrollView>
+        )}
+        keyExtractor={(item, index) => {
+          if (typeof item === "string") return item;
+          return item.id || index.toString();
+        }}
+      />
 
       <Modal
         visible={memberModalVisible}
-        animationType="slide"
         transparent={true}
+        animationType="slide"
         onRequestClose={() => setMemberModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Member</Text>
-
-            <View style={styles.memberInput}>
-              <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                placeholder="Enter Member Email"
-                value={newMemberEmail}
-                onChangeText={setNewMemberEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={!addingMember}
-              />
+            <Text style={styles.modalTitle}>Add Member</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter member's email"
+              value={memberEmail}
+              onChangeText={setMemberEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => {
+                  setMemberEmail("");
+                  setMemberModalVisible(false);
+                }}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[
-                  styles.addMemberButton,
+                  styles.button,
+                  styles.addButton,
                   addingMember && styles.buttonDisabled,
                 ]}
-                onPress={addMember}
+                onPress={handleAddMember}
                 disabled={addingMember}
               >
-                {addingMember ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text style={styles.addMemberButtonText}>Add</Text>
-                )}
+                <Text style={styles.buttonText}>
+                  {addingMember ? "Adding..." : "Add Member"}
+                </Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={() => {
-                setMemberModalVisible(false);
-                setNewMemberEmail("");
-              }}
-            >
-              <Text style={styles.buttonText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -673,7 +850,7 @@ export default function GroupDetails() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -949,5 +1126,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
     marginTop: 20,
+  },
+  deleteButton: {
+    padding: 8,
   },
 });

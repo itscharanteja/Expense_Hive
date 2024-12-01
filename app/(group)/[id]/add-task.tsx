@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,18 +6,73 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ScrollView,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  Timestamp,
+  doc,
+  getDoc,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../context/auth";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
+
+type Member = {
+  email: string;
+  username: string;
+};
 
 export default function AddGroupTask() {
   const { id } = useLocalSearchParams();
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<Member[]>([]);
+  const [selectedMember, setSelectedMember] = useState<string>("");
+
+  // Fetch group members when component mounts
+  useEffect(() => {
+    const fetchGroupMembers = async () => {
+      if (!id) return;
+      try {
+        const groupDoc = await getDoc(doc(db, "groups", id as string));
+        if (groupDoc.exists()) {
+          const members = groupDoc.data().members;
+
+          // Fetch usernames for all members
+          const membersWithUsernames: Member[] = [];
+          for (const email of members) {
+            const userQuery = query(
+              collection(db, "users"),
+              where("email", "==", email)
+            );
+            const userSnapshot = await getDocs(userQuery);
+            if (!userSnapshot.empty) {
+              membersWithUsernames.push({
+                email: email,
+                username: userSnapshot.docs[0].data().username,
+              });
+            }
+          }
+          setGroupMembers(membersWithUsernames);
+        }
+      } catch (error) {
+        console.error("Error fetching group members:", error);
+        Alert.alert("Error", "Failed to load group members");
+      }
+    };
+
+    fetchGroupMembers();
+  }, [id]);
 
   const handleSubmit = async () => {
     if (!user || !id) return;
@@ -27,16 +82,20 @@ export default function AddGroupTask() {
       return;
     }
 
+    if (!selectedMember) {
+      Alert.alert("Error", "Please select a member to assign the task");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const taskData = {
         title: title.trim(),
-        assignedTo: user.email, // You'll need to implement member selection
+        assignedTo: selectedMember,
+        dueDate: Timestamp.fromDate(selectedDate),
         completed: false,
-        dueDate: Timestamp.now(), // You'll need to implement date selection
-        groupId: id,
         createdBy: user.email,
-        createdAt: Timestamp.now(),
+        groupId: id,
       };
 
       await addDoc(collection(db, "groupTasks"), taskData);
@@ -51,12 +110,12 @@ export default function AddGroupTask() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Add Group Task</Text>
+        <Text style={styles.title}>Add Task</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -67,8 +126,57 @@ export default function AddGroupTask() {
         onChangeText={setTitle}
       />
 
+      {/* Member Selection */}
+      <Text style={styles.sectionTitle}>Assign To</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.memberList}
+      >
+        {groupMembers.map((member) => (
+          <TouchableOpacity
+            key={member.email}
+            style={[
+              styles.memberButton,
+              member.email === selectedMember && styles.memberButtonSelected,
+            ]}
+            onPress={() => setSelectedMember(member.email)}
+          >
+            <Text
+              style={[
+                styles.memberButtonText,
+                member.email === selectedMember &&
+                  styles.memberButtonTextSelected,
+              ]}
+            >
+              @{member.username}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <TouchableOpacity
-        style={[styles.button, isSubmitting && styles.buttonDisabled]}
+        style={styles.dateButton}
+        onPress={() => setDatePickerVisible(true)}
+      >
+        <Ionicons name="calendar-outline" size={20} color="#007AFF" />
+        <Text style={styles.dateButtonText}>
+          Due: {selectedDate.toLocaleDateString()}
+        </Text>
+      </TouchableOpacity>
+
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="datetime"
+        onConfirm={(date) => {
+          setSelectedDate(date);
+          setDatePickerVisible(false);
+        }}
+        onCancel={() => setDatePickerVisible(false)}
+      />
+
+      <TouchableOpacity
+        style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
         onPress={handleSubmit}
         disabled={isSubmitting}
       >
@@ -76,7 +184,7 @@ export default function AddGroupTask() {
           {isSubmitting ? "Adding..." : "Add Task"}
         </Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -84,6 +192,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -99,20 +208,65 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
     padding: 15,
-    borderRadius: 5,
-    marginBottom: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+    fontSize: 16,
   },
-  button: {
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 10,
+    color: "#666",
+  },
+  memberList: {
+    marginBottom: 20,
+  },
+  memberButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  memberButtonSelected: {
+    backgroundColor: "#E3F2FD",
+    borderColor: "#007AFF",
+  },
+  memberButtonText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  memberButtonTextSelected: {
+    color: "#007AFF",
+    fontWeight: "500",
+  },
+  dateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 8,
+    marginBottom: 20,
+    gap: 8,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: "#007AFF",
+  },
+  submitButton: {
     backgroundColor: "#007AFF",
     padding: 15,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: "white",
-    textAlign: "center",
-    fontWeight: "bold",
+    borderRadius: 8,
+    alignItems: "center",
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
