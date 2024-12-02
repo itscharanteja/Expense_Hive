@@ -58,23 +58,13 @@ export const onNotificationCreated = functions.firestore.onDocumentCreated(
 
       if (userData?.expoPushToken) {
         console.log("Found push token:", userData.expoPushToken);
-        let title = "New Notification";
-        let body = "";
-
-        switch (notification.type) {
-          case "GROUP_ADDITION":
-            title = "Added to Group";
-            body = `You were added to ${notification.groupName}`;
-            break;
-          // Add other cases as needed
-        }
-
         await sendPushNotification(
           userData.expoPushToken,
-          title,
-          body,
+          "Added to Group",
+          `You were added to ${notification.groupName} by ${notification.createdByUsername}`,
           notification
         );
+        console.log("Push notification sent successfully");
       } else {
         console.log("No push token found for user");
       }

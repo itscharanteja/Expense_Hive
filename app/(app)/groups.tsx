@@ -120,21 +120,35 @@ export default function Groups() {
       });
 
       const batch = writeBatch(db);
-      selectedMembers.forEach((memberEmail) => {
-        const notificationRef = doc(collection(db, "notifications"));
-        batch.set(notificationRef, {
-          type: "GROUP_ADDITION",
-          groupId: groupRef.id,
-          groupName: newGroupName.trim(),
-          createdBy: user.email,
-          createdByUsername: userData.username,
-          recipientEmail: memberEmail,
-          createdAt: Timestamp.now(),
-          read: false,
-        });
-      });
+      for (const memberEmail of selectedMembers) {
+        const usersRef = collection(db, "users");
+        const userQuery = query(usersRef, where("email", "==", memberEmail));
+        const userSnapshot = await getDocs(userQuery);
+
+        if (!userSnapshot.empty) {
+          const userDoc = userSnapshot.docs[0];
+          const recipientId = userDoc.id;
+
+          const notificationRef = doc(collection(db, "notifications"));
+          batch.set(notificationRef, {
+            type: "GROUP_ADDITION",
+            groupId: groupRef.id,
+            groupName: newGroupName.trim(),
+            createdBy: user.email,
+            createdByUsername: userData.username,
+            recipientEmail: memberEmail,
+            recipientId,
+            createdAt: Timestamp.now(),
+            read: false,
+          });
+
+          console.log("Creating notification for:", memberEmail);
+          console.log("With recipientId:", recipientId);
+        }
+      }
 
       await batch.commit();
+      console.log("Notifications created successfully");
 
       // Reset form and close modal
       setNewGroupName("");
@@ -146,9 +160,9 @@ export default function Groups() {
         pathname: "/(group)/[id]",
         params: { id: groupRef.id },
       });
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to create group");
+    } catch (error) {
       console.error("Error creating group:", error);
+      Alert.alert("Error", "Failed to create group");
     } finally {
       setIsSubmitting(false);
     }

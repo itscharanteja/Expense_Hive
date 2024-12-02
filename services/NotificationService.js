@@ -18,43 +18,30 @@ export async function registerForPushNotificationsAsync() {
   let token;
 
   try {
-    console.log("Checking if device is physical:", Device.isDevice);
-
     if (Device.isDevice) {
-      console.log("Checking existing permissions...");
       const { status: existingStatus } =
         await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
-      console.log("Existing permission status:", existingStatus);
-
       if (existingStatus !== "granted") {
-        console.log("Requesting permissions...");
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
-        console.log("New permission status:", status);
       }
 
       if (finalStatus !== "granted") {
         console.log("Permission not granted");
-        alert("Failed to get push token for push notification!");
         return;
       }
 
-      console.log("Getting push token...");
+      // Handle both Expo Go and Development build
       token = await Notifications.getExpoPushTokenAsync({
-        experienceId: "@itscharanteja/ExpHive",
-        projectId: "88a39d41-96fe-42f6-9aea-7c8b46745864",
+        projectId: "88a39d41-96fe-42f6-9aea-7c8b46745864", // For development build
+        experienceId: "@itscharanteja/ExpHive", // For Expo Go
       });
-      console.log("Full token object:", token);
       console.log("Push token:", token.data);
-    } else {
-      console.log("Not a physical device");
-      alert("Must use physical device for Push Notifications");
     }
 
     if (Platform.OS === "android") {
-      console.log("Setting up Android channel...");
       await Notifications.setNotificationChannelAsync("default", {
         name: "default",
         importance: Notifications.AndroidImportance.MAX,
@@ -66,7 +53,6 @@ export async function registerForPushNotificationsAsync() {
     return token?.data;
   } catch (error) {
     console.error("Error in registerForPushNotificationsAsync:", error);
-    alert("Error setting up notifications: " + error.message);
     return null;
   }
 }

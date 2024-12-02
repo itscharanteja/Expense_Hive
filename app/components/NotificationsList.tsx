@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Animated,
 } from "react-native";
 import {
   collection,
@@ -23,7 +22,6 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 type Notification = {
   id: string;
@@ -31,7 +29,7 @@ type Notification = {
   groupId: string;
   groupName: string;
   addedBy?: string;
-  addedByUsername?: string;
+  createdByUsername?: string;
   deletedByUsername?: string;
   recipientEmail: string;
   recipientId: string;
@@ -53,7 +51,7 @@ const NotificationItem = ({
   const getNotificationContent = () => {
     switch (item.type) {
       case "GROUP_ADDITION":
-        return `You were added to ${item.groupName} by ${item.addedByUsername}`;
+        return `You were added to ${item.groupName} by ${item.createdByUsername}`;
       case "GROUP_DELETION":
         return `${item.groupName} was deleted by ${item.deletedByUsername}`;
       case "GROUP_EXPENSE":
@@ -66,18 +64,15 @@ const NotificationItem = ({
   };
 
   return (
-    <View style={styles.notificationItem}>
+    <TouchableOpacity onPress={onDelete} style={styles.notificationItem}>
       <View style={styles.notificationContent}>
         <Text style={styles.notificationType}>{getNotificationContent()}</Text>
         <Text style={styles.notificationTime}>
           {item.createdAt?.toDate().toLocaleString()}
         </Text>
       </View>
-      <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-        <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-      </TouchableOpacity>
       {!item.read && <View style={styles.unreadDot} />}
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -116,14 +111,14 @@ export default function NotificationsList() {
         readAt: Timestamp.now(), // Add timestamp when notification was read
       });
 
-      // Set a timeout to delete the notification after 5 minutes
+      // Set a timeout to delete the notification after a short delay
       setTimeout(async () => {
         try {
           await deleteDoc(doc(db, "notifications", notification.id));
         } catch (error) {
           console.error("Error deleting notification:", error);
         }
-      }, 5 * 60 * 1000); // 5 minutes in milliseconds
+      }, 2000); // 2 seconds delay
 
       // Navigate if it's a group notification
       if (notification.type === "GROUP_ADDITION") {
@@ -137,14 +132,6 @@ export default function NotificationsList() {
     }
   };
 
-  const handleDelete = async (notificationId: string) => {
-    try {
-      await deleteDoc(doc(db, "notifications", notificationId));
-    } catch (error) {
-      console.error("Error deleting notification:", error);
-    }
-  };
-
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     // Fetch will happen automatically via useEffect
@@ -152,37 +139,24 @@ export default function NotificationsList() {
   }, []);
 
   return (
-    <>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <FlatList
-          data={notifications}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <NotificationItem
-              item={item}
-              onDelete={() => handleDelete(item.id)}
-            />
-          )}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={styles.listContainer}
+    <FlatList
+      data={notifications}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <NotificationItem
+          item={item}
+          onDelete={() => handleNotificationPress(item)}
         />
-      </GestureHandlerRootView>
-    </>
+      )}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      contentContainerStyle={styles.listContainer}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 16,
-    paddingHorizontal: 16,
-  },
   notificationItem: {
     flexDirection: "row",
     backgroundColor: "white",
@@ -199,11 +173,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 4,
   },
-  notificationDetails: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 2,
-  },
   notificationTime: {
     fontSize: 12,
     color: "#999",
@@ -217,24 +186,5 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flexGrow: 1,
-  },
-  deleteAction: {
-    backgroundColor: "#FF3B30",
-    justifyContent: "center",
-    alignItems: "center",
-    width: 80,
-    height: "100%",
-  },
-  deleteActionContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  deleteActionText: {
-    color: "white",
-    fontSize: 12,
-    marginTop: 4,
-  },
-  deleteButton: {
-    marginLeft: 8,
   },
 });
