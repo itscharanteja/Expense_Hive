@@ -47,7 +47,7 @@ export default function Groups() {
 
   useEffect(() => {
     fetchGroups();
-  }, [user]);
+  }, [groups]);
 
   const fetchGroups = async () => {
     if (!user) return;

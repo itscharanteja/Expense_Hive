@@ -7,10 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "plugins": [
-      "expo-router",
-      "expo-notifications"
-    ],
+    "plugins": ["expo-router", "expo-notifications"],
     "notification": {
       "icon": "./assets/images/notification-icon.png",
       "color": "#ffffff",
@@ -19,9 +16,12 @@
       "androidCollapsedTitle": "New Notification"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.itscharanteja.expensehive"
     },
     "android": {
+      "package": "com.itscharanteja.exphive",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -29,7 +29,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "88a39d41-96fe-42f6-9aea-7c8b46745864"
       }
     }
   }

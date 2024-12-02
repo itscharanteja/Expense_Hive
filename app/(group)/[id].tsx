@@ -218,10 +218,12 @@ export default function GroupDetails() {
   };
 
   const handleAddMember = async () => {
-    if (!group || !memberEmail || !user || !userData) return;
+    if (!group || !memberEmail || !user || !userData?.username) return;
 
     try {
       setAddingMember(true);
+      console.log("Adding member:", memberEmail);
+
       // First check if user exists
       const usersRef = collection(db, "users");
       const userQuery = query(
@@ -235,12 +237,16 @@ export default function GroupDetails() {
         return;
       }
 
+      const memberDoc = userSnapshot.docs[0];
+      console.log("Member found:", memberDoc.id);
+      console.log("Member data:", memberDoc.data());
+
       // Update group members
       await updateDoc(doc(db, "groups", id as string), {
         members: arrayUnion(memberEmail.toLowerCase()),
       });
 
-      // Create notification for the added user
+      // Create notification with guaranteed username
       const notificationData = {
         type: "GROUP_ADDITION",
         groupId: id,
@@ -248,17 +254,23 @@ export default function GroupDetails() {
         addedBy: user.email,
         addedByUsername: userData.username,
         recipientEmail: memberEmail.toLowerCase(),
+        recipientId: memberDoc.id,
         createdAt: Timestamp.now(),
         read: false,
       };
 
-      await addDoc(collection(db, "notifications"), notificationData);
+      console.log("Creating notification:", notificationData);
+      const notificationRef = await addDoc(
+        collection(db, "notifications"),
+        notificationData
+      );
+      console.log("Notification created with ID:", notificationRef.id);
 
-      setMemberEmail(""); // Clear input
+      setMemberEmail("");
       setMemberModalVisible(false);
       Alert.alert("Success", "Member added successfully");
     } catch (error) {
-      console.error("Error adding member:", error);
+      console.error("Error in handleAddMember:", error);
       Alert.alert("Error", "Failed to add member");
     } finally {
       setAddingMember(false);
