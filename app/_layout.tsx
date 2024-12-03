@@ -14,30 +14,26 @@ export default function RootLayout() {
   useEffect(() => {
     async function setupNotifications() {
       try {
-        console.log("Starting notification setup...");
+        console.log("Setting up notifications...");
         const token = await registerForPushNotificationsAsync();
-        console.log("Notification setup complete. Token:", token);
+        console.log("Got token:", token);
 
         if (token) {
+          console.log("Saving token to Firestore...");
           await savePushToken(token);
+          console.log("Token saved successfully");
+          
+          // Test notification
+          await testLocalNotification();
         }
 
-        // Test local notification
-        // await testLocalNotification();
+        const notificationListener = addNotificationListener((notification) => {
+          console.log("Received foreground notification:", notification);
+        });
 
-        // Listen for incoming notifications when app is in foreground
-        const notificationListener = addNotificationListener(
-          (notification: any) => {
-            console.log("Received notification:", notification);
-          }
-        );
-
-        // Listen for when user taps on notification
-        const responseListener = addNotificationResponseListener(
-          (response: any) => {
-            console.log("Notification response:", response);
-          }
-        );
+        const responseListener = addNotificationResponseListener((response) => {
+          console.log("Notification response:", response);
+        });
 
         return () => {
           notificationListener.remove();

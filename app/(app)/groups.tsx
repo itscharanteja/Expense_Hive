@@ -25,6 +25,10 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
+import {
+  sendGroupAdditionNotification,
+  testGroupNotification,
+} from "../../services/NotificationService";
 
 type Group = {
   id: string;
@@ -103,12 +107,8 @@ export default function Groups() {
   const handleCreateGroup = async () => {
     if (!user || !userData) return;
 
-    if (!newGroupName.trim()) {
-      Alert.alert("Error", "Please enter a group name");
-      return;
-    }
-
     try {
+      console.log("Creating group with members:", selectedMembers);
       setIsSubmitting(true);
       const initialMembers = [user.email, ...selectedMembers];
 
@@ -121,11 +121,13 @@ export default function Groups() {
 
       const batch = writeBatch(db);
       for (const memberEmail of selectedMembers) {
+        console.log("Processing member:", memberEmail);
         const usersRef = collection(db, "users");
         const userQuery = query(usersRef, where("email", "==", memberEmail));
         const userSnapshot = await getDocs(userQuery);
 
         if (!userSnapshot.empty) {
+          console.log("Found user document for:", memberEmail);
           const userDoc = userSnapshot.docs[0];
           const recipientId = userDoc.id;
 
@@ -141,14 +143,11 @@ export default function Groups() {
             createdAt: Timestamp.now(),
             read: false,
           });
-
-          console.log("Creating notification for:", memberEmail);
-          console.log("With recipientId:", recipientId);
         }
       }
 
       await batch.commit();
-      console.log("Notifications created successfully");
+      console.log("All notifications created successfully");
 
       // Reset form and close modal
       setNewGroupName("");
@@ -161,7 +160,7 @@ export default function Groups() {
         params: { id: groupRef.id },
       });
     } catch (error) {
-      console.error("Error creating group:", error);
+      console.error("Error in group creation:", error);
       Alert.alert("Error", "Failed to create group");
     } finally {
       setIsSubmitting(false);
@@ -194,6 +193,12 @@ export default function Groups() {
       <View style={styles.header}>
         <Text style={styles.title}>Groups</Text>
         <TouchableOpacity
+          style={styles.testButton}
+          onPress={testGroupNotification}
+        >
+          <Text style={styles.testButtonText}>Test</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
         >
@@ -214,7 +219,7 @@ export default function Groups() {
             title="Pull to refresh"
           />
         }
-        ListEmptyComponent={
+        ListEmptyComponent={() =>
           !loading && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>No groups yet</Text>
@@ -448,5 +453,16 @@ const styles = StyleSheet.create({
   emptyStateSubtext: {
     fontSize: 14,
     color: "#999",
+  },
+  testButton: {
+    backgroundColor: "#007AFF",
+    padding: 10,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  testButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

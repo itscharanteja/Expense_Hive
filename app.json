@@ -1,14 +1,17 @@
 {
   "expo": {
     "name": "ExpHive",
-    "slug": "ExpHive",
+    "slug": "expense-hive",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "owner": "itscharanteja",
-    "plugins": ["expo-router", "expo-notifications"],
+    "plugins": [
+      "expo-router",
+      "expo-notifications"
+    ],
     "notification": {
       "icon": "./assets/images/notification-icon.png",
       "color": "#ffffff",

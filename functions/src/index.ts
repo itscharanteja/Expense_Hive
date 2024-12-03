@@ -37,11 +37,17 @@ async function sendPushNotification(
 export const onNotificationCreated = functions.firestore.onDocumentCreated(
   "notifications/{notificationId}",
   async (event) => {
+    console.log("Notification trigger started");
     const notification = event.data?.data();
-    console.log("Processing notification:", notification);
+    console.log("Notification data:", notification);
 
     if (!notification) {
-      console.log("No notification data");
+      console.log("No notification data found");
+      return;
+    }
+
+    if (notification.createdBy === notification.recipientEmail) {
+      console.log("Skipping notification for creator");
       return;
     }
 
@@ -58,18 +64,36 @@ export const onNotificationCreated = functions.firestore.onDocumentCreated(
 
       if (userData?.expoPushToken) {
         console.log("Found push token:", userData.expoPushToken);
-        await sendPushNotification(
-          userData.expoPushToken,
-          "Added to Group",
-          `You were added to ${notification.groupName} by ${notification.createdByUsername}`,
-          notification
-        );
+
+        const message = {
+          to: userData.expoPushToken,
+          sound: "default",
+          title: "Added to Group",
+          body: `You were added to ${notification.groupName} by ${notification.createdByUsername}`,
+          data: notification,
+          priority: "high",
+        };
+
+        console.log("Sending notification:", message);
+
+        await axios.post("https://exp.host/--/api/v2/push/send", message, {
+          headers: {
+            Accept: "application/json",
+            "Accept-encoding": "gzip, deflate",
+            "Content-Type": "application/json",
+          },
+        });
+
         console.log("Push notification sent successfully");
       } else {
         console.log("No push token found for user");
       }
     } catch (error) {
-      console.error("Error processing notification:", error);
+      if (error instanceof Error) {
+        console.error("Error processing notification:", error.message);
+      } else {
+        console.error("Unknown error processing notification");
+      }
     }
   }
 );
