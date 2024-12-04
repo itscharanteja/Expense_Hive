@@ -11,6 +11,9 @@ import {
   doc as firestoreDoc,
   getDoc,
   Timestamp,
+  orderBy,
+  limit,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 
@@ -71,7 +74,9 @@ export default function Home() {
       // Fetch group expenses
       const groupExpensesQuery = query(
         collection(db, "groupExpenses"),
-        where("splitBetween", "array-contains", user.email)
+        where("splitBetween", "array-contains", user.email),
+        orderBy("date", "desc"),
+        limit(5)
       );
       const groupExpensesSnapshot = await getDocs(groupExpensesQuery);
 
@@ -191,10 +196,10 @@ export default function Home() {
               </Text>
             </View>
 
-            <View style={styles.notificationsSection}>
+            {/* <View style={styles.notificationsSection}>
               <Text style={styles.sectionTitle}>Notifications</Text>
               <NotificationsList />
-            </View>
+            </View> */}
 
             <Text style={styles.sectionTitle}>Recent Expenses</Text>
           </>
@@ -234,13 +239,14 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     flexDirection: "row",
-    gap: 12,
+    gap: 8,
     marginBottom: 16,
   },
   summaryCard: {
     flex: 1,
     backgroundColor: "white",
     padding: 16,
+    marginHorizontal: 4,
     borderRadius: 12,
     alignItems: "center",
     shadowColor: "#000",
@@ -250,7 +256,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   summaryTitle: {
     fontSize: 14,
@@ -263,7 +269,7 @@ const styles = StyleSheet.create({
     color: "#007AFF",
   },
   totalExpense: {
-    backgroundColor: "#f8f8f8",
+    backgroundColor: "#ffffff",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
@@ -294,6 +300,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 12,
     marginBottom: 8,
+    marginHorizontal: 4,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -301,7 +308,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   expenseInfo: {
     flex: 1,

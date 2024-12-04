@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password
       );
-      await ensureUserDocument(userCredential.user);
+      // await ensureUserDocument(userCredential.user);
       // Save credentials securely
       await AsyncStorage.setItem(
         CREDS_KEY,
@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-} 
+}
 
 export function useAuth() {
   const context = useContext(AuthContext);

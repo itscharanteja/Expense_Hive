@@ -25,10 +25,10 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import {
-  sendGroupAdditionNotification,
-  testGroupNotification,
-} from "../../services/NotificationService";
+// import {
+//   sendGroupAdditionNotification,
+//   testGroupNotification,
+// } from "../../services/NotificationService";
 import { sendPushNotification } from "../../scripts/sendTestNotification";
 
 type Group = {
@@ -198,12 +198,12 @@ export default function Groups() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Groups</Text>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.testButton}
           onPress={testGroupNotification}
         >
           <Text style={styles.testButtonText}>Test</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   list: {
-    padding: 20,
+    padding: 16,
   },
   groupItem: {
     flexDirection: "row",
@@ -354,6 +354,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 12,
     marginBottom: 12,
+    marginHorizontal: 4,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -367,10 +368,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 4,
+    paddingRight: 8,
   },
   memberCount: {
     fontSize: 14,
     color: "#666",
+    paddingRight: 8,
   },
   modalContainer: {
     flex: 1,

@@ -869,12 +869,13 @@ export default function GroupDetails() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",

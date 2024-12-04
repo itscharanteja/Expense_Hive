@@ -411,6 +411,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 10,
     marginBottom: 10,
+    marginHorizontal: 4,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -418,7 +419,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   expenseCategory: {
     fontSize: 16,
