@@ -29,6 +29,7 @@ import {
   sendGroupAdditionNotification,
   testGroupNotification,
 } from "../../services/NotificationService";
+import { sendPushNotification } from "../../scripts/sendTestNotification";
 
 type Group = {
   id: string;
@@ -129,6 +130,7 @@ export default function Groups() {
         if (!userSnapshot.empty) {
           console.log("Found user document for:", memberEmail);
           const userDoc = userSnapshot.docs[0];
+          const userData = userDoc.data();
           const recipientId = userDoc.id;
 
           const notificationRef = doc(collection(db, "notifications"));
@@ -143,18 +145,22 @@ export default function Groups() {
             createdAt: Timestamp.now(),
             read: false,
           });
+
+          if (userData.expoPushToken) {
+            await sendPushNotification(
+              `You were added to ${newGroupName.trim()}`,
+              userData.expoPushToken
+            );
+          }
         }
       }
 
       await batch.commit();
       console.log("All notifications created successfully");
 
-      // Reset form and close modal
       setNewGroupName("");
       setSelectedMembers([]);
       setModalVisible(false);
-
-      // Navigate to new group
       router.push({
         pathname: "/(group)/[id]",
         params: { id: groupRef.id },

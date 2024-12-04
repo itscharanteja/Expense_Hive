@@ -1,20 +1,20 @@
-const axios = require("axios");
+import axios from "axios";
 
 // Get the push token from command line argument
-const EXPO_PUSH_TOKEN = process.argv[2];
+// const EXPO_PUSH_TOKEN = process.argv[2];
 
-if (!EXPO_PUSH_TOKEN) {
-  console.error("Please provide your Expo Push Token as an argument");
-  process.exit(1);
-}
+// if (!EXPO_PUSH_TOKEN) {
+//   console.error("Please provide your Expo Push Token as an argument");
+//   process.exit(1);
+// }
 
-async function sendPushNotification() {
+export async function sendPushNotification(body, userToken) {
   try {
     const message = {
-      to: EXPO_PUSH_TOKEN,
+      to: userToken,
       sound: "default",
-      title: "Test Notification",
-      body: "This is a test notification from ExpHive!",
+      title: "ExpHive Notification",
+      body: body,
       data: { someData: "goes here" },
     };
 
