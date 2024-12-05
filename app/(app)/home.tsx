@@ -16,6 +16,7 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { Colors } from "../constants/Colors";
 
 type ExpenseSummary = {
   totalPersonal: number;
@@ -172,7 +173,11 @@ export default function Home() {
 
             <View style={styles.summaryContainer}>
               <View style={styles.summaryCard}>
-                <Ionicons name="wallet-outline" size={24} color="#007AFF" />
+                <Ionicons
+                  name="wallet-outline"
+                  size={24}
+                  color={Colors.primary}
+                />
                 <Text style={styles.summaryTitle}>Personal Expenses</Text>
                 <Text style={styles.summaryAmount}>
                   {summary.totalPersonal.toFixed(2)} kr
@@ -180,7 +185,11 @@ export default function Home() {
               </View>
 
               <View style={styles.summaryCard}>
-                <Ionicons name="people-outline" size={24} color="#007AFF" />
+                <Ionicons
+                  name="people-outline"
+                  size={24}
+                  color={Colors.primary}
+                />
                 <Text style={styles.summaryTitle}>My Group Shares</Text>
                 <Text style={styles.summaryAmount}>
                   {summary.totalGroupShare.toFixed(2)} kr
@@ -223,7 +232,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.background,
     padding: 20,
   },
   welcomeSection: {
@@ -232,10 +241,11 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 24,
     fontWeight: "bold",
+    color: Colors.black,
   },
   email: {
     fontSize: 16,
-    color: "#666",
+    color: Colors.text,
   },
   summaryContainer: {
     flexDirection: "row",
@@ -244,29 +254,26 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: Colors.white,
     padding: 16,
     marginHorizontal: 4,
     borderRadius: 12,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 3,
   },
   summaryTitle: {
     fontSize: 14,
-    color: "#666",
+    color: Colors.text,
     marginVertical: 8,
   },
   summaryAmount: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: Colors.primary,
   },
   totalExpense: {
     backgroundColor: "#ffffff",
@@ -282,7 +289,7 @@ const styles = StyleSheet.create({
   totalExpenseAmount: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: Colors.primary,
   },
   sectionTitle: {
     fontSize: 20,
@@ -327,7 +334,7 @@ const styles = StyleSheet.create({
   },
   groupTag: {
     fontSize: 12,
-    color: "#007AFF",
+    color: Colors.accent,
   },
   shareAmount: {
     fontSize: 12,

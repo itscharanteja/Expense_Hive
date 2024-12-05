@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useEffect, useState } from "react";
+import { Colors } from "../constants/Colors";
 
 type UserProfile = {
   email: string;
@@ -117,7 +118,7 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
   },
   centered: {
     justifyContent: "center",
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     justifyContent: "center",
     alignItems: "center",
   },

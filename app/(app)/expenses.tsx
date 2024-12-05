@@ -27,6 +27,7 @@ import {
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Picker } from "@react-native-picker/picker";
+import { Colors } from "../constants/Colors";
 
 type Expense = {
   id: string;
@@ -234,7 +235,7 @@ export default function Expenses() {
         <Text style={styles.monthText}>
           {months[selectedMonth]} {selectedYear}
         </Text>
-        <Ionicons name="calendar" size={24} color="#007AFF" />
+        <Ionicons name="calendar" size={24} color={Colors.primary} />
       </TouchableOpacity>
 
       <View style={styles.totalContainer}>
@@ -369,6 +370,7 @@ export default function Expenses() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
     padding: 20,
   },
   header: {
@@ -380,9 +382,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
+    color: Colors.black,
   },
   addButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -391,51 +394,50 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 40,
   },
   emptyStateText: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
+    color: Colors.text,
     marginBottom: 8,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: "#666",
+    color: Colors.text,
   },
   expenseItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-    backgroundColor: "white",
-    borderRadius: 10,
-    marginBottom: 10,
-    marginHorizontal: 4,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    backgroundColor: Colors.white,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 3,
+    elevation: 5,
   },
   expenseCategory: {
     fontSize: 16,
     fontWeight: "bold",
   },
   expenseDescription: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 16,
+    fontWeight: "500",
+    color: Colors.black,
+    marginBottom: 4,
   },
   expenseDate: {
-    fontSize: 12,
-    color: "#999",
+    fontSize: 14,
+    color: Colors.text,
+    marginBottom: 4,
   },
   expenseAmount: {
     fontSize: 18,
     fontWeight: "bold",
+    color: Colors.primary,
   },
   centerContent: {
     justifyContent: "center",
@@ -464,10 +466,10 @@ const styles = StyleSheet.create({
   monthText: {
     fontSize: 18,
     fontWeight: "500",
-    color: "#007AFF",
+    color: Colors.primary,
   },
   totalContainer: {
-    backgroundColor: "#f8f8f8",
+    backgroundColor: Colors.white,
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,
@@ -475,24 +477,22 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    color: "#666",
+    color: Colors.text,
     marginBottom: 5,
   },
   totalAmount: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: Colors.primary,
   },
   modalContainer: {
     flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    padding: 20,
+    backgroundColor: Colors.background,
   },
   modalContent: {
-    backgroundColor: "white",
-    borderRadius: 10,
+    backgroundColor: Colors.white,
     padding: 20,
+    borderRadius: 12,
   },
   modalTitle: {
     fontSize: 20,

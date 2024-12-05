@@ -30,6 +30,7 @@ import React from "react";
 //   testGroupNotification,
 // } from "../../services/NotificationService";
 import { sendPushNotification } from "../../scripts/sendTestNotification";
+import { Colors } from "../constants/Colors";
 
 type Group = {
   id: string;
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   addButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -433,7 +434,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   createButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
@@ -473,5 +474,8 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  unreadDot: {
+    backgroundColor: Colors.secondary,
   },
 });

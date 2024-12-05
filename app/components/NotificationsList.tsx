@@ -22,6 +22,7 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { Colors } from "../constants/Colors";
 
 type Notification = {
   id: string;
@@ -159,10 +160,10 @@ export default function NotificationsList() {
 const styles = StyleSheet.create({
   notificationItem: {
     flexDirection: "row",
-    backgroundColor: "white",
+    backgroundColor: Colors.white,
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: Colors.background,
     alignItems: "center",
   },
   notificationContent: {
@@ -175,13 +176,13 @@ const styles = StyleSheet.create({
   },
   notificationTime: {
     fontSize: 12,
-    color: "#999",
+    color: Colors.text,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.secondary,
     marginLeft: 8,
   },
   listContainer: {

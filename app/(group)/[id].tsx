@@ -37,6 +37,9 @@ import {
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { Colors } from "../constants/Colors";
+import { sendPushNotification } from "../../scripts/sendTestNotification";
+import { Picker } from "@react-native-picker/picker";
 
 type GroupExpense = {
   id: string;
@@ -108,6 +111,54 @@ export default function GroupDetails() {
   const [newReminder, setNewReminder] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [taskModalVisible, setTaskModalVisible] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [selectedMember, setSelectedMember] = useState("");
+  const [taskDueDate, setTaskDueDate] = useState(new Date());
+
+  const handleAddTask = async (taskData: any) => {
+    try {
+      const newTask = await addDoc(collection(db, "groupTasks"), {
+        ...taskData,
+        groupId: id,
+      });
+
+      // Get the assigned user's data to get their push token
+      const usersRef = collection(db, "users");
+      const userQuery = query(
+        usersRef,
+        where("email", "==", taskData.assignedTo)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userData = userSnapshot.docs[0].data();
+
+        // If user has a push token, send notification
+        if (userData.expoPushToken) {
+          await sendPushNotification(
+            `New task assigned: ${taskData.title}`,
+            userData.expoPushToken
+          );
+        }
+      }
+
+      // Create notification document
+      // await addDoc(collection(db, "notifications"), {
+      //   type: "TASK_ASSIGNED",
+      //   groupId: id,
+      //   groupName: group?.name,
+      //   createdBy: user?.email,
+      //   createdByUsername: userData?.username,
+      //   recipientEmail: taskData.assignedTo,
+      //   title: taskData.title,
+      //   createdAt: Timestamp.now(),
+      //   read: false,
+      // });
+    } catch (error) {
+      console.error("Error adding task:", error);
+    }
+  };
 
   useEffect(() => {
     if (!user || !id) return;
@@ -192,6 +243,45 @@ export default function GroupDetails() {
       unsubscribeReminders();
     };
   }, [id, user]);
+
+  useEffect(() => {
+    if (!user || !group) return;
+
+    // Check reminders every minute
+    const reminderInterval = setInterval(() => {
+      reminders.forEach(async (reminder) => {
+        if (!reminder.completed) {
+          const timeUntilDue = reminder.dueDate.getTime() - Date.now();
+          const minutesUntilDue = timeUntilDue / (1000 * 60);
+
+          // If reminder is due in 30 minutes
+          if (minutesUntilDue <= 30 && minutesUntilDue > 29) {
+            // Send notifications to all group members
+            for (const memberEmail of group.members) {
+              const usersRef = collection(db, "users");
+              const userQuery = query(
+                usersRef,
+                where("email", "==", memberEmail)
+              );
+              const userSnapshot = await getDocs(userQuery);
+
+              if (!userSnapshot.empty) {
+                const userData = userSnapshot.docs[0].data();
+                if (userData.expoPushToken) {
+                  await sendPushNotification(
+                    `Reminder: ${reminder.title} is due in 30 minutes`,
+                    userData.expoPushToken
+                  );
+                }
+              }
+            }
+          }
+        }
+      });
+    }, 60000); // Check every minute
+
+    return () => clearInterval(reminderInterval);
+  }, [reminders, group]);
 
   const toggleTaskStatus = async (taskId: string, completed: boolean) => {
     try {
@@ -356,6 +446,12 @@ export default function GroupDetails() {
   };
 
   const handleLongPressTask = (task: GroupTask) => {
+    // Only allow deletion if user is admin or the assigned person
+    if (user?.email !== group?.createdBy && user?.email !== task.assignedTo) {
+      Alert.alert("Error", "Only admin or assigned person can delete tasks");
+      return;
+    }
+
     Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
       {
         text: "Cancel",
@@ -546,18 +642,30 @@ export default function GroupDetails() {
       renderItem: ({ item }: { item: GroupTask }) => (
         <TouchableOpacity
           style={styles.taskItem}
-          onPress={() => toggleTaskStatus(item.id, !item.completed)}
+          onPress={() => {
+            if (item.assignedTo === user?.email) {
+              toggleTaskStatus(item.id, !item.completed);
+            }
+          }}
           onLongPress={() => handleLongPressTask(item)}
           delayLongPress={500}
+          disabled={item.assignedTo !== user?.email}
         >
           <Ionicons
             name={item.completed ? "checkbox" : "square-outline"}
             size={24}
-            color="#007AFF"
+            color={
+              item.assignedTo === user?.email ? Colors.accent : Colors.text
+            }
+            style={{ opacity: item.assignedTo === user?.email ? 1 : 0.5 }}
           />
           <View style={styles.taskContent}>
             <Text
-              style={[styles.taskTitle, item.completed && styles.taskCompleted]}
+              style={[
+                styles.taskTitle,
+                item.completed && styles.taskCompleted,
+                item.assignedTo !== user?.email && styles.taskDisabled,
+              ]}
             >
               {item.title}
             </Text>
@@ -590,6 +698,45 @@ export default function GroupDetails() {
         </View>
       ),
     },
+    {
+      title: "Reminders",
+      data: reminders,
+      renderItem: ({ item }: { item: GroupReminder }) => (
+        <TouchableOpacity
+          style={[
+            styles.reminderItem,
+            item.completed && styles.completedReminder,
+          ]}
+          onPress={() => toggleReminderStatus(item.id, !item.completed)}
+          onLongPress={() => handleLongPressReminder(item)}
+          delayLongPress={500}
+        >
+          <View style={styles.reminderContent}>
+            <View style={styles.reminderHeader}>
+              <Text style={styles.reminderTitle}>{item.title}</Text>
+              <Text
+                style={[
+                  styles.reminderDueDate,
+                  { color: getDueColor(item.dueDate) },
+                ]}
+              >
+                Due: {item.dueDate.toLocaleString()}
+              </Text>
+            </View>
+            <View style={styles.reminderDetails}>
+              <Text style={styles.reminderCreatedBy}>
+                Created by: {item.createdBy}
+              </Text>
+            </View>
+          </View>
+          <Ionicons
+            name={item.completed ? "checkbox" : "square-outline"}
+            size={24}
+            color={Colors.accent}
+          />
+        </TouchableOpacity>
+      ),
+    },
   ];
 
   // Function to create notifications
@@ -612,32 +759,12 @@ export default function GroupDetails() {
         createdByUsername: userData?.username,
         createdAt: Timestamp.now(),
         read: false,
-        // Spread data at the beginning so we can override if needed
         ...data,
       };
 
       await addDoc(collection(db, "notifications"), notificationData);
     } catch (error) {
       console.error("Error creating notification:", error);
-    }
-  };
-
-  // Update task creation to include notification
-  const handleAddTask = async (taskData: any) => {
-    try {
-      const newTask = await addDoc(collection(db, "groupTasks"), {
-        ...taskData,
-        groupId: id,
-      });
-
-      // Create notification for assigned user
-      await createNotification("TASK_ASSIGNED", {
-        recipientEmail: taskData.assignedTo,
-        title: taskData.title,
-        dueDate: taskData.dueDate,
-      });
-    } catch (error) {
-      console.error("Error adding task:", error);
     }
   };
 
@@ -680,6 +807,63 @@ export default function GroupDetails() {
     } catch (error) {
       console.error("Error adding reminder:", error);
     }
+  };
+
+  const onAddTaskPress = async () => {
+    try {
+      if (!user || !userData || !newTaskTitle || !selectedMember) {
+        Alert.alert("Error", "Please fill in all task details");
+        return;
+      }
+
+      const taskData = {
+        title: newTaskTitle,
+        assignedTo: selectedMember,
+        completed: false,
+        dueDate: taskDueDate,
+        groupId: id,
+      };
+
+      await handleAddTask(taskData);
+
+      // Reset form
+      setNewTaskTitle("");
+      setSelectedMember("");
+      setTaskDueDate(new Date());
+      setTaskModalVisible(false);
+
+      Alert.alert("Success", "Task added successfully");
+    } catch (error) {
+      console.error("Error adding task:", error);
+      Alert.alert("Error", "Failed to add task");
+    }
+  };
+
+  // Add this function for handling long press on reminders
+  const handleLongPressReminder = (reminder: GroupReminder) => {
+    Alert.alert(
+      "Delete Reminder",
+      "Are you sure you want to delete this reminder?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "groupReminders", reminder.id));
+              Alert.alert("Success", "Reminder deleted successfully");
+            } catch (error) {
+              console.error("Error deleting reminder:", error);
+              Alert.alert("Error", "Failed to delete reminder");
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading || !group) {
@@ -734,12 +918,7 @@ export default function GroupDetails() {
             )}
             {title === "Tasks" && (
               <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/(group)/[id]/add-task",
-                    params: { id: id as string },
-                  })
-                }
+                onPress={() => setTaskModalVisible(true)}
                 style={styles.addButton}
               >
                 <Ionicons name="add" size={24} color="white" />
@@ -751,6 +930,14 @@ export default function GroupDetails() {
                 onPress={() => setMemberModalVisible(true)}
               >
                 <Ionicons name="person-add" size={20} color="white" />
+              </TouchableOpacity>
+            )}
+            {title === "Reminders" && (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setReminderModalVisible(true)}
+              >
+                <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>
             )}
           </View>
@@ -862,6 +1049,72 @@ export default function GroupDetails() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={taskModalVisible}
+        animationType="slide"
+        onRequestClose={() => setTaskModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Task</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Task Title"
+              value={newTaskTitle}
+              onChangeText={setNewTaskTitle}
+            />
+
+            <Picker
+              selectedValue={selectedMember}
+              onValueChange={(itemValue: string) =>
+                setSelectedMember(itemValue)
+              }
+              style={styles.picker}
+            >
+              <Picker.Item label="Select Member" value="" />
+              {group?.members.map((member) => (
+                <Picker.Item key={member} label={member} value={member} />
+              ))}
+            </Picker>
+
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => setDatePickerVisible(true)}
+            >
+              <Text style={styles.datePickerButtonText}>
+                Due: {taskDueDate.toLocaleString()}
+              </Text>
+            </TouchableOpacity>
+
+            <DateTimePickerModal
+              isVisible={isDatePickerVisible}
+              mode="datetime"
+              onConfirm={(date) => {
+                setTaskDueDate(date);
+                setDatePickerVisible(false);
+              }}
+              onCancel={() => setDatePickerVisible(false)}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => setTaskModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.addButton]}
+                onPress={onAddTaskPress}
+              >
+                <Text style={styles.buttonText}>Add Task</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -909,7 +1162,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   addButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -948,6 +1201,7 @@ const styles = StyleSheet.create({
   expenseAmount: {
     fontSize: 18,
     fontWeight: "bold",
+    color: Colors.primary,
   },
   taskItem: {
     flexDirection: "row",
@@ -1079,14 +1333,17 @@ const styles = StyleSheet.create({
   totalExpenseAmount: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: Colors.primary,
   },
   reminderItem: {
-    backgroundColor: "white",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 15,
+    backgroundColor: Colors.white,
     borderRadius: 10,
     marginBottom: 10,
-    shadowColor: "#000",
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
@@ -1097,27 +1354,30 @@ const styles = StyleSheet.create({
   },
   reminderContent: {
     flex: 1,
+    marginRight: 10,
   },
   reminderHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 5,
   },
   reminderTitle: {
     fontSize: 16,
     fontWeight: "600",
-  },
-  reminderDetails: {
-    gap: 4,
+    color: Colors.black,
   },
   reminderDueDate: {
     fontSize: 14,
     fontWeight: "500",
   },
+  reminderDetails: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
   reminderCreatedBy: {
     fontSize: 12,
-    color: "#666",
+    color: Colors.text,
   },
   noRemindersText: {
     textAlign: "center",
@@ -1142,5 +1402,15 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 8,
+    color: Colors.secondary,
+  },
+  picker: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    padding: 10,
+    borderRadius: 5,
+  },
+  taskDisabled: {
+    opacity: 0.5, // Reduce opacity for non-assigned tasks
   },
 });

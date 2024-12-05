@@ -22,18 +22,22 @@ export default function RootLayout() {
           console.log("Saving token to Firestore...");
           await savePushToken(token);
           console.log("Token saved successfully");
-          
+
           // Test notification
           await testLocalNotification();
         }
 
-        const notificationListener = addNotificationListener((notification) => {
-          console.log("Received foreground notification:", notification);
-        });
+        const notificationListener = addNotificationListener(
+          (notification: any) => {
+            console.log("Received foreground notification:", notification);
+          }
+        );
 
-        const responseListener = addNotificationResponseListener((response) => {
-          console.log("Notification response:", response);
-        });
+        const responseListener = addNotificationResponseListener(
+          (response: any) => {
+            console.log("Notification response:", response);
+          }
+        );
 
         return () => {
           notificationListener.remove();
