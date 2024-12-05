@@ -40,6 +40,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Colors } from "../constants/Colors";
 import { sendPushNotification } from "../../scripts/sendTestNotification";
 import { Picker } from "@react-native-picker/picker";
+import { GradientBackground } from "../components/GradientBackground";
 
 type GroupExpense = {
   id: string;
@@ -123,7 +124,6 @@ export default function GroupDetails() {
         groupId: id,
       });
 
-      // Get the assigned user's data to get their push token
       const usersRef = collection(db, "users");
       const userQuery = query(
         usersRef,
@@ -134,7 +134,6 @@ export default function GroupDetails() {
       if (!userSnapshot.empty) {
         const userData = userSnapshot.docs[0].data();
 
-        // If user has a push token, send notification
         if (userData.expoPushToken) {
           await sendPushNotification(
             `New task assigned: ${taskData.title}`,
@@ -142,19 +141,6 @@ export default function GroupDetails() {
           );
         }
       }
-
-      // Create notification document
-      // await addDoc(collection(db, "notifications"), {
-      //   type: "TASK_ASSIGNED",
-      //   groupId: id,
-      //   groupName: group?.name,
-      //   createdBy: user?.email,
-      //   createdByUsername: userData?.username,
-      //   recipientEmail: taskData.assignedTo,
-      //   title: taskData.title,
-      //   createdAt: Timestamp.now(),
-      //   read: false,
-      // });
     } catch (error) {
       console.error("Error adding task:", error);
     }
@@ -289,21 +275,6 @@ export default function GroupDetails() {
     } catch (error) {
       console.error("Error updating task:", error);
       Alert.alert("Error", "Failed to update task");
-    }
-  };
-
-  const checkUserExists = async (email: string): Promise<boolean> => {
-    try {
-      const usersRef = collection(db, "users");
-      const q = query(
-        usersRef,
-        where("email", "==", email.toLowerCase().trim())
-      );
-      const querySnapshot = await getDocs(q);
-      return !querySnapshot.empty;
-    } catch (error) {
-      console.error("Error checking user existence:", error);
-      return false;
     }
   };
 
@@ -609,13 +580,26 @@ export default function GroupDetails() {
     );
   };
 
+  const toggleExpenseStatus = async (expenseId: string, settled: boolean) => {
+    try {
+      await updateDoc(doc(db, "groupExpenses", expenseId), {
+        settled: !settled,
+      });
+
+      console.log(`Expense ${expenseId} ${settled ? "unsettled" : "settled"}`);
+    } catch (error) {
+      console.error("Error toggling expense status:", error);
+      Alert.alert("Error", "Failed to update expense status");
+    }
+  };
+
   const sections: Section[] = [
     {
       title: "Expenses",
       data: expenses,
       renderItem: ({ item }: { item: GroupExpense }) => (
         <TouchableOpacity
-          style={styles.expenseItem}
+          style={[styles.expenseItem, item.settled && styles.settledExpense]}
           onPress={() =>
             router.push({
               pathname: "/(group)/[id]/expense/[expenseId]",
@@ -632,7 +616,12 @@ export default function GroupDetails() {
             </Text>
             <Text style={styles.paidByText}>Paid by {item.paidBy}</Text>
           </View>
-          <Text style={styles.expenseAmount}>{item.amount.toFixed(2)} kr</Text>
+          <View>
+            <Text style={styles.expenseAmount}>
+              {item.amount.toFixed(2)} kr
+            </Text>
+            {item.settled && <Text style={styles.settledText}>Settled</Text>}
+          </View>
         </TouchableOpacity>
       ),
     },
@@ -875,247 +864,249 @@ export default function GroupDetails() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </TouchableOpacity>
-        <Text style={styles.title}>{group?.name}</Text>
-        {group?.createdBy === user?.email && (
-          <TouchableOpacity
-            onPress={handleDeleteGroup}
-            style={styles.deleteButton}
-          >
-            <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+    <GradientBackground>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#007AFF" />
           </TouchableOpacity>
-        )}
-      </View>
+          <Text style={styles.title}>{group?.name}</Text>
+          {group?.createdBy === user?.email && (
+            <TouchableOpacity
+              onPress={handleDeleteGroup}
+              style={styles.deleteButton}
+            >
+              <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+            </TouchableOpacity>
+          )}
+        </View>
 
-      <View style={styles.totalExpenseContainer}>
-        <Text style={styles.totalExpenseLabel}>Total Group Expense</Text>
-        <Text style={styles.totalExpenseAmount}>
-          {totalGroupExpense.toFixed(2)} kr
-        </Text>
-      </View>
+        <View style={styles.totalExpenseContainer}>
+          <Text style={styles.totalExpenseLabel}>Total Group Expense</Text>
+          <Text style={styles.totalExpenseAmount}>
+            {totalGroupExpense.toFixed(2)} kr
+          </Text>
+        </View>
 
-      <SectionList
-        sections={sections}
-        renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{title}</Text>
-            {title === "Expenses" && (
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/(group)/[id]/add-expense",
-                    params: { id: id as string },
-                  })
-                }
-                style={styles.addButton}
-              >
-                <Ionicons name="add" size={24} color="white" />
-              </TouchableOpacity>
-            )}
-            {title === "Tasks" && (
-              <TouchableOpacity
-                onPress={() => setTaskModalVisible(true)}
-                style={styles.addButton}
-              >
-                <Ionicons name="add" size={24} color="white" />
-              </TouchableOpacity>
-            )}
-            {title === "Members" && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setMemberModalVisible(true)}
-              >
-                <Ionicons name="person-add" size={20} color="white" />
-              </TouchableOpacity>
-            )}
-            {title === "Reminders" && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setReminderModalVisible(true)}
-              >
-                <Ionicons name="add" size={24} color="white" />
-              </TouchableOpacity>
-            )}
+        <SectionList
+          sections={sections}
+          renderSectionHeader={({ section: { title } }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{title}</Text>
+              {title === "Expenses" && (
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(group)/[id]/add-expense",
+                      params: { id: id as string },
+                    })
+                  }
+                  style={styles.addButton}
+                >
+                  <Ionicons name="add" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+              {title === "Tasks" && (
+                <TouchableOpacity
+                  onPress={() => setTaskModalVisible(true)}
+                  style={styles.addButton}
+                >
+                  <Ionicons name="add" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+              {title === "Members" && (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => setMemberModalVisible(true)}
+                >
+                  <Ionicons name="person-add" size={20} color="white" />
+                </TouchableOpacity>
+              )}
+              {title === "Reminders" && (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => setReminderModalVisible(true)}
+                >
+                  <Ionicons name="add" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          keyExtractor={(item, index) => {
+            if (typeof item === "string") return item;
+            return item.id || index.toString();
+          }}
+        />
+
+        <Modal
+          visible={memberModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setMemberModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add Member</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter member's email"
+                value={memberEmail}
+                onChangeText={setMemberEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={() => {
+                    setMemberEmail("");
+                    setMemberModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    styles.addButton,
+                    addingMember && styles.buttonDisabled,
+                  ]}
+                  onPress={handleAddMember}
+                  disabled={addingMember}
+                >
+                  <Text style={styles.buttonText}>
+                    {addingMember ? "Adding..." : "Add Member"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        )}
-        keyExtractor={(item, index) => {
-          if (typeof item === "string") return item;
-          return item.id || index.toString();
-        }}
-      />
+        </Modal>
 
-      <Modal
-        visible={memberModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setMemberModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Member</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter member's email"
-              value={memberEmail}
-              onChangeText={setMemberEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-            <View style={styles.modalButtons}>
+        <Modal
+          visible={reminderModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setReminderModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add Reminder</Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Enter reminder"
+                value={newReminder}
+                onChangeText={setNewReminder}
+                multiline
+              />
+
               <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => {
-                  setMemberEmail("");
-                  setMemberModalVisible(false);
-                }}
+                style={styles.datePickerButton}
+                onPress={showDatePicker}
               >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.addButton,
-                  addingMember && styles.buttonDisabled,
-                ]}
-                onPress={handleAddMember}
-                disabled={addingMember}
-              >
-                <Text style={styles.buttonText}>
-                  {addingMember ? "Adding..." : "Add Member"}
+                <Text style={styles.datePickerButtonText}>
+                  Due: {selectedDate.toLocaleString()}
                 </Text>
               </TouchableOpacity>
+
+              <DateTimePickerModal
+                isVisible={isDatePickerVisible}
+                mode="datetime"
+                onConfirm={handleConfirm}
+                onCancel={hideDatePicker}
+                date={selectedDate}
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={() => {
+                    setReminderModalVisible(false);
+                    setNewReminder("");
+                    setSelectedDate(new Date());
+                  }}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.addButton]}
+                  onPress={addReminder}
+                >
+                  <Text style={styles.buttonText}>Add Reminder</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      <Modal
-        visible={reminderModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setReminderModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Reminder</Text>
+        <Modal
+          visible={taskModalVisible}
+          animationType="slide"
+          onRequestClose={() => setTaskModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add New Task</Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Enter reminder"
-              value={newReminder}
-              onChangeText={setNewReminder}
-              multiline
-            />
+              <TextInput
+                style={styles.input}
+                placeholder="Task Title"
+                value={newTaskTitle}
+                onChangeText={setNewTaskTitle}
+              />
 
-            <TouchableOpacity
-              style={styles.datePickerButton}
-              onPress={showDatePicker}
-            >
-              <Text style={styles.datePickerButtonText}>
-                Due: {selectedDate.toLocaleString()}
-              </Text>
-            </TouchableOpacity>
+              <Picker
+                selectedValue={selectedMember}
+                onValueChange={(itemValue: string) =>
+                  setSelectedMember(itemValue)
+                }
+                style={styles.picker}
+              >
+                <Picker.Item label="Select Member" value="" />
+                {group?.members.map((member) => (
+                  <Picker.Item key={member} label={member} value={member} />
+                ))}
+              </Picker>
 
-            <DateTimePickerModal
-              isVisible={isDatePickerVisible}
-              mode="datetime"
-              onConfirm={handleConfirm}
-              onCancel={hideDatePicker}
-              date={selectedDate}
-            />
-
-            <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => {
-                  setReminderModalVisible(false);
-                  setNewReminder("");
-                  setSelectedDate(new Date());
+                style={styles.datePickerButton}
+                onPress={() => setDatePickerVisible(true)}
+              >
+                <Text style={styles.datePickerButtonText}>
+                  Due: {taskDueDate.toLocaleString()}
+                </Text>
+              </TouchableOpacity>
+
+              <DateTimePickerModal
+                isVisible={isDatePickerVisible}
+                mode="datetime"
+                onConfirm={(date) => {
+                  setTaskDueDate(date);
+                  setDatePickerVisible(false);
                 }}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.addButton]}
-                onPress={addReminder}
-              >
-                <Text style={styles.buttonText}>Add</Text>
-              </TouchableOpacity>
+                onCancel={() => setDatePickerVisible(false)}
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={() => setTaskModalVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.addButton]}
+                  onPress={onAddTaskPress}
+                >
+                  <Text style={styles.buttonText}>Add Task</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={taskModalVisible}
-        animationType="slide"
-        onRequestClose={() => setTaskModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Task</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Task Title"
-              value={newTaskTitle}
-              onChangeText={setNewTaskTitle}
-            />
-
-            <Picker
-              selectedValue={selectedMember}
-              onValueChange={(itemValue: string) =>
-                setSelectedMember(itemValue)
-              }
-              style={styles.picker}
-            >
-              <Picker.Item label="Select Member" value="" />
-              {group?.members.map((member) => (
-                <Picker.Item key={member} label={member} value={member} />
-              ))}
-            </Picker>
-
-            <TouchableOpacity
-              style={styles.datePickerButton}
-              onPress={() => setDatePickerVisible(true)}
-            >
-              <Text style={styles.datePickerButtonText}>
-                Due: {taskDueDate.toLocaleString()}
-              </Text>
-            </TouchableOpacity>
-
-            <DateTimePickerModal
-              isVisible={isDatePickerVisible}
-              mode="datetime"
-              onConfirm={(date) => {
-                setTaskDueDate(date);
-                setDatePickerVisible(false);
-              }}
-              onCancel={() => setDatePickerVisible(false)}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => setTaskModalVisible(false)}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.addButton]}
-                onPress={onAddTaskPress}
-              >
-                <Text style={styles.buttonText}>Add Task</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </GradientBackground>
   );
 }
 
@@ -1123,6 +1114,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: "transparent",
   },
   header: {
     flexDirection: "row",
@@ -1174,14 +1166,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 15,
-    backgroundColor: "white",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 10,
     marginBottom: 10,
+    marginHorizontal: 4,
     shadowColor: "#000",
     shadowOffset: { width: 4, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   expenseDescription: {
     fontSize: 16,
@@ -1207,14 +1200,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 15,
-    backgroundColor: "white",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 10,
     marginBottom: 10,
+    marginHorizontal: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   taskContent: {
     marginLeft: 10,
@@ -1239,6 +1233,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
+    marginHorizontal: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -1340,14 +1335,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 15,
-    backgroundColor: Colors.white,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 10,
     marginBottom: 10,
+    marginHorizontal: 4,
     shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   completedReminder: {
     opacity: 0.7,
@@ -1411,6 +1407,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   taskDisabled: {
-    opacity: 0.5, // Reduce opacity for non-assigned tasks
+    opacity: 0.5,
+  },
+  settledExpense: {
+    opacity: 0.7,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+  },
+  settledText: {
+    fontSize: 12,
+    color: Colors.primary,
+    textAlign: "right",
+    marginTop: 4,
   },
 });

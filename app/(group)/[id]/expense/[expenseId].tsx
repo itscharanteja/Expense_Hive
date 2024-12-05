@@ -17,6 +17,7 @@ import {
   deleteDoc,
   getDocs,
   collection,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +32,7 @@ type ExpenseDetails = {
   splitBetween: string[];
   receiptId?: string;
   paidMembers?: string[];
+  settled: boolean;
 };
 
 export default function ExpenseDetails() {
@@ -56,6 +58,7 @@ export default function ExpenseDetails() {
             ...expenseData,
             date: expenseData.date.toDate(),
             paidMembers: expenseData.paidMembers || [],
+            settled: expenseData.settled,
           } as ExpenseDetails);
 
           const usersSnap = await getDocs(collection(db, "users"));
@@ -109,9 +112,61 @@ export default function ExpenseDetails() {
 
   const amountPerPerson = expense.amount / expense.splitBetween.length;
 
-  function togglePaidStatus(email: string): void {
-    throw new Error("Function not implemented.");
-  }
+  const togglePaidStatus = async (email: string) => {
+    try {
+      const expenseRef = doc(db, "groupExpenses", expenseId as string);
+
+      // Get current paidMembers array or empty array if it doesn't exist
+      const currentPaidMembers = expense?.paidMembers || [];
+
+      // Toggle the member's paid status
+      const updatedPaidMembers = currentPaidMembers.includes(email)
+        ? currentPaidMembers.filter((member) => member !== email)
+        : [...currentPaidMembers, email];
+
+      // Update Firestore
+      await updateDoc(expenseRef, {
+        paidMembers: updatedPaidMembers,
+      });
+
+      // Update local state
+      setExpense((expense) =>
+        expense
+          ? {
+              ...expense,
+              paidMembers: updatedPaidMembers,
+            }
+          : null
+      );
+    } catch (error) {
+      console.error("Error toggling paid status:", error);
+      Alert.alert("Error", "Failed to update payment status");
+    }
+  };
+
+  const toggleExpenseStatus = async () => {
+    try {
+      await updateDoc(doc(db, "groupExpenses", expenseId as string), {
+        settled: !expense?.settled,
+      });
+
+      // Update local state
+      if (expense) {
+        setExpense({
+          ...expense,
+          settled: !expense.settled,
+        });
+      }
+
+      Alert.alert(
+        "Success",
+        `Expense marked as ${expense?.settled ? "unsettled" : "settled"}`
+      );
+    } catch (error) {
+      console.error("Error toggling expense status:", error);
+      Alert.alert("Error", "Failed to update expense status");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -281,9 +336,6 @@ export default function ExpenseDetails() {
             <Text style={styles.deleteButtonText}>Delete Expense</Text>
           </TouchableOpacity>
         )}
-
-        {/* Bottom Spacing */}
-        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -471,5 +523,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#34C759",
     fontWeight: "500",
+  },
+  settleButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#f0f0f0",
+  },
+  unsettleButton: {
+    backgroundColor: "#34C759",
+  },
+  settleButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
   },
 });
