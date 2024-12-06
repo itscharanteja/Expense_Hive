@@ -326,6 +326,10 @@ export default function GroupDetails() {
         notificationData
       );
       console.log("Notification created with ID:", notificationRef.id);
+      await sendPushNotification(
+        `You have been added to ${group.name}`,
+        memberDoc.data().expoPushToken
+      );
 
       setMemberEmail("");
       setMemberModalVisible(false);

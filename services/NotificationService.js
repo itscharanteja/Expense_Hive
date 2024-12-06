@@ -20,7 +20,8 @@ export async function registerForPushNotificationsAsync() {
   try {
     console.log("Starting push notification registration...");
     if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
       console.log("Current permission status:", existingStatus);
       let finalStatus = existingStatus;
 
@@ -95,7 +96,7 @@ export async function testLocalNotification() {
         data: { data: "goes here" },
         sound: true,
       },
-      trigger: null, // null means show immediately
+      trigger: null,
     });
     console.log("Local notification scheduled successfully");
   } catch (error) {
@@ -123,16 +124,19 @@ export async function savePushToken(token) {
 }
 
 // Add this function for group addition notifications
-export async function sendGroupAdditionNotification(groupName, addedByUsername) {
+export async function sendGroupAdditionNotification(
+  groupName,
+  addedByUsername
+) {
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "Added to Group",
         body: `You were added to ${groupName} by ${addedByUsername}`,
-        data: { 
+        data: {
           type: "GROUP_ADDITION",
           groupName,
-          addedByUsername 
+          addedByUsername,
         },
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
@@ -152,10 +156,10 @@ export async function testGroupNotification() {
       content: {
         title: "Test Group Notification",
         body: "Test: You were added to Test Group by TestUser",
-        data: { 
+        data: {
           type: "GROUP_ADDITION",
           groupName: "Test Group",
-          addedByUsername: "TestUser"
+          addedByUsername: "TestUser",
         },
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,

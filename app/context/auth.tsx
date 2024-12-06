@@ -80,8 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password
       );
-      // await ensureUserDocument(userCredential.user);
-      // Save credentials securely
+
       await AsyncStorage.setItem(
         CREDS_KEY,
         JSON.stringify({ email, password })
@@ -97,7 +96,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
 
-      // Check if username is already taken
       const usernameQuery = query(
         collection(db, "users"),
         where("username", "==", username.toLowerCase())

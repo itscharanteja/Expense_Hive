@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, RefreshControl, FlatList } from "react-native";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
-import NotificationsList from "../components/NotificationsList";
 import {
   collection,
   query,
@@ -204,12 +203,6 @@ export default function Home() {
                 kr
               </Text>
             </View>
-
-            {/* <View style={styles.notificationsSection}>
-              <Text style={styles.sectionTitle}>Notifications</Text>
-              <NotificationsList />
-            </View> */}
-
             <Text style={styles.sectionTitle}>Recent Expenses</Text>
           </>
         )}
@@ -232,7 +225,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
     padding: 20,
   },
   welcomeSection: {

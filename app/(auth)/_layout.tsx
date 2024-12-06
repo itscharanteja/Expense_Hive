@@ -5,10 +5,14 @@ import { Redirect } from "expo-router";
 export default function AuthLayout() {
   const { user } = useAuth();
 
-  // Redirect to home if user is already authenticated
   if (user) {
     return <Redirect href="/home" />;
   }
 
-  return <Stack />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login" />
+      <Stack.Screen name="signup" />
+    </Stack>
+  );
 }
