@@ -5,146 +5,217 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
 } from "react-native";
 import { Link, router } from "expo-router";
 import { useAuth } from "../context/auth";
+import { Colors } from "../constants/Colors";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function Register() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
 
   const handleRegister = async () => {
     try {
-      setError("");
-
       if (!username.trim()) {
-        setError("Please enter a username");
+        Alert.alert("Error", "Please enter a username");
         return;
       }
 
       if (username.length < 3) {
-        setError("Username must be at least 3 characters long");
+        Alert.alert("Error", "Username must be at least 3 characters long");
         return;
       }
 
       if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-        setError("Username can only contain letters, numbers, and underscores");
+        Alert.alert(
+          "Error",
+          "Username can only contain letters, numbers, and underscores"
+        );
         return;
       }
 
       if (!email.trim()) {
-        setError("Please enter an email");
+        Alert.alert("Error", "Please enter an email");
         return;
       }
 
       if (password !== confirmPassword) {
-        setError("Passwords do not match");
+        Alert.alert("Error", "Passwords do not match");
         return;
       }
 
+      setLoading(true);
       await signUp(email, password, username);
-      router.replace("/login");
-    } catch (e: any) {
-      setError(e.message);
+      router.replace("/(auth)/login");
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Register</Text>
+    <LinearGradient
+      colors={[Colors.primary, Colors.accent]}
+      style={styles.gradient}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("../../assets/images/expense.png")}
+              style={styles.logo}
+            />
+            <Text style={styles.appName}>ExpHive</Text>
+            <Text style={styles.tagline}>Join Our Community</Text>
+          </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+          <View style={styles.formContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-      />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+            />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-      />
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? "Creating Account..." : "Sign Up"}
+              </Text>
+            </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
-
-      <Link href="/login" asChild>
-        <TouchableOpacity style={styles.linkButton}>
-          <Text style={styles.linkText}>Already have an account? Login</Text>
-        </TouchableOpacity>
-      </Link>
-    </View>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Already have an account? </Text>
+              <Link href="/(auth)/login" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.linkText}>Login</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: "center",
   },
-  title: {
-    fontSize: 24,
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 20,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 40,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    marginBottom: 10,
+  },
+  appName: {
+    fontSize: 32,
     fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
+    color: Colors.white,
+    marginBottom: 8,
+  },
+  tagline: {
+    fontSize: 16,
+    color: Colors.white,
+    opacity: 0.8,
+  },
+  formContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
+    backgroundColor: "#f5f5f5",
     padding: 15,
+    borderRadius: 10,
     marginBottom: 15,
-    borderRadius: 5,
+    fontSize: 16,
   },
   button: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     padding: 15,
-    borderRadius: 5,
-    marginBottom: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
-    color: "white",
-    textAlign: "center",
-    fontWeight: "bold",
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: "600",
   },
-  linkButton: {
-    padding: 15,
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+  footerText: {
+    color: Colors.text,
   },
   linkText: {
-    color: "#007AFF",
-    textAlign: "center",
-  },
-  error: {
-    color: "red",
-    textAlign: "center",
-    marginBottom: 15,
+    color: Colors.primary,
+    fontWeight: "600",
   },
 });

@@ -10,7 +10,9 @@
     "owner": "itscharanteja",
     "plugins": ["expo-router", "expo-notifications"],
     "androidStatusBar": {
-      "translucent": false
+      "backgroundColor": "#ffffff",
+      "translucent": false,
+      "barStyle": "dark-content"
     },
     "notification": {
       "icon": "./assets/images/notification-icon.png",
