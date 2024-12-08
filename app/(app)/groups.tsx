@@ -31,6 +31,7 @@ import React from "react";
 // } from "../../services/NotificationService";
 import { sendPushNotification } from "../../scripts/sendTestNotification";
 import { Colors } from "../constants/Colors";
+import { LinearGradient } from 'expo-linear-gradient';
 
 type Group = {
   id: string;
@@ -196,133 +197,132 @@ export default function Groups() {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Groups</Text>
-        {/* <TouchableOpacity
-          style={styles.testButton}
-          onPress={testGroupNotification}
-        >
-          <Text style={styles.testButtonText}>Test</Text>
-        </TouchableOpacity> */}
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <Ionicons name="add" size={24} color="white" />
-        </TouchableOpacity>
-      </View>
+    <LinearGradient
+      colors={[Colors.primary + '30', Colors.accent + '10']}
+      style={styles.gradientBackground}
+    >
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Groups</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setModalVisible(true)}
+          >
+            <Ionicons name="add" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
 
-      <FlatList
-        data={groups}
-        renderItem={renderGroup}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#007AFF"
-            title="Pull to refresh"
-          />
-        }
-        ListEmptyComponent={() =>
-          !loading && (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No groups yet</Text>
-              <Text style={styles.emptyStateSubtext}>
-                Tap the + button to create a group
-              </Text>
-            </View>
-          )
-        }
-      />
-
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => setModalVisible(false)}
-              style={styles.closeButton}
-            >
-              <Ionicons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Create New Group</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          <View style={styles.formContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter group name"
-              value={newGroupName}
-              onChangeText={setNewGroupName}
+        <FlatList
+          data={groups}
+          renderItem={renderGroup}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#007AFF"
+              title="Pull to refresh"
             />
+          }
+          ListEmptyComponent={() =>
+            !loading && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No groups yet</Text>
+                <Text style={styles.emptyStateSubtext}>
+                  Tap the + button to create a group
+                </Text>
+              </View>
+            )
+          }
+        />
 
-            <View style={styles.memberInputContainer}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Add member email"
-                value={newMemberEmail}
-                onChangeText={setNewMemberEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
+        <Modal
+          visible={modalVisible}
+          animationType="slide"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
               <TouchableOpacity
-                style={styles.addMemberButton}
-                onPress={handleAddMember}
+                onPress={() => setModalVisible(false)}
+                style={styles.closeButton}
               >
-                <Ionicons name="add" size={24} color="white" />
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Create New Group</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <View style={styles.formContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter group name"
+                value={newGroupName}
+                onChangeText={setNewGroupName}
+              />
+
+              <View style={styles.memberInputContainer}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Add member email"
+                  value={newMemberEmail}
+                  onChangeText={setNewMemberEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                <TouchableOpacity
+                  style={styles.addMemberButton}
+                  onPress={handleAddMember}
+                >
+                  <Ionicons name="add" size={24} color="white" />
+                </TouchableOpacity>
+              </View>
+
+              {selectedMembers.length > 0 && (
+                <View style={styles.membersContainer}>
+                  {selectedMembers.map((email) => (
+                    <View key={email} style={styles.memberChip}>
+                      <Text style={styles.memberEmail}>{email}</Text>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setSelectedMembers((members) =>
+                            members.filter((m) => m !== email)
+                          )
+                        }
+                        style={styles.removeButton}
+                      >
+                        <Ionicons name="close" size={18} color="#666" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.createButton,
+                  isSubmitting && styles.buttonDisabled,
+                ]}
+                onPress={handleCreateGroup}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.buttonText}>
+                  {isSubmitting ? "Creating..." : "Create Group"}
+                </Text>
               </TouchableOpacity>
             </View>
-
-            {selectedMembers.length > 0 && (
-              <View style={styles.membersContainer}>
-                {selectedMembers.map((email) => (
-                  <View key={email} style={styles.memberChip}>
-                    <Text style={styles.memberEmail}>{email}</Text>
-                    <TouchableOpacity
-                      onPress={() =>
-                        setSelectedMembers((members) =>
-                          members.filter((m) => m !== email)
-                        )
-                      }
-                      style={styles.removeButton}
-                    >
-                      <Ionicons name="close" size={18} color="#666" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[
-                styles.createButton,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-              onPress={handleCreateGroup}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.buttonText}>
-                {isSubmitting ? "Creating..." : "Create Group"}
-              </Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    paddingTop: 40,
   },
   header: {
     flexDirection: "row",
@@ -477,5 +477,8 @@ const styles = StyleSheet.create({
   },
   unreadDot: {
     backgroundColor: Colors.secondary,
+  },
+  gradientBackground: {
+    flex: 1,
   },
 });
