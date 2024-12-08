@@ -27,7 +27,7 @@ type RecentExpense = {
 };
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [summary, setSummary] = useState<ExpenseSummary>({
     totalPersonal: 0,
@@ -160,7 +160,11 @@ export default function Home() {
           <>
             <View style={styles.welcomeSection}>
               <Text style={styles.welcomeText}>Welcome back!</Text>
-              <Text style={styles.email}>{user?.email}</Text>
+              <Text style={styles.username}>
+                @{userData?.username 
+                  ? userData.username.charAt(0).toUpperCase() + userData.username.slice(1) 
+                  : 'User'}
+              </Text>
             </View>
 
             <View style={styles.summaryContainer}>
@@ -236,9 +240,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: Colors.black,
   },
-  email: {
+  username: {
     fontSize: 16,
     color: Colors.text,
+    fontWeight: '500',
   },
   summaryContainer: {
     flexDirection: "row",
