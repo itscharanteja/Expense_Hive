@@ -29,7 +29,7 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Picker } from "@react-native-picker/picker";
 import { Colors } from "../constants/Colors";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 
 type Expense = {
   id: string;
@@ -62,7 +62,7 @@ export default function Expenses() {
   const [showMonthGrid, setShowMonthGrid] = useState(false);
   const [yearRange, setYearRange] = useState({
     start: 2018,
-    end: 2029
+    end: 2029,
   });
   const [yearPageIndex, setYearPageIndex] = useState(0);
   const YEARS_PER_PAGE = 12;
@@ -84,10 +84,7 @@ export default function Expenses() {
     "December",
   ];
 
-  const years = Array.from(
-    { length: 12 },
-    (_, i) => 2018 + i
-  );
+  const years = Array.from({ length: 12 }, (_, i) => 2018 + i);
 
   const fetchExpenses = async () => {
     if (!user) return;
@@ -275,24 +272,27 @@ export default function Expenses() {
   };
 
   const getYearRangeForPage = (pageIndex: number) => {
-    const startYear = yearRange.start + (pageIndex * YEARS_PER_PAGE);
+    const startYear = yearRange.start + pageIndex * YEARS_PER_PAGE;
     return Array.from(
-      { length: YEARS_PER_PAGE }, 
+      { length: YEARS_PER_PAGE },
       (_, i) => startYear + i
-    ).filter(year => year >= yearRange.start && year <= yearRange.end);
+    ).filter((year) => year >= yearRange.start && year <= yearRange.end);
   };
 
-  const handleYearSwipe = (direction: 'next' | 'prev') => {
-    if (direction === 'next' && (yearPageIndex + 1) * YEARS_PER_PAGE < yearRange.end) {
+  const handleYearSwipe = (direction: "next" | "prev") => {
+    if (
+      direction === "next" &&
+      (yearPageIndex + 1) * YEARS_PER_PAGE < yearRange.end
+    ) {
       setYearPageIndex(yearPageIndex + 1);
-    } else if (direction === 'prev' && yearPageIndex > 0) {
+    } else if (direction === "prev" && yearPageIndex > 0) {
       setYearPageIndex(yearPageIndex - 1);
     }
   };
 
   return (
     <LinearGradient
-      colors={[Colors.primary + '40', Colors.accent + '20']}
+      colors={[Colors.primary + "40", Colors.accent + "20"]}
       style={styles.gradientBackground}
     >
       <View style={styles.container}>
@@ -310,7 +310,12 @@ export default function Expenses() {
           onPress={() => setShowMonthPicker(true)}
         >
           <View style={styles.monthSelectorContent}>
-            <Ionicons name="calendar-outline" size={24} color={Colors.primary} style={styles.calendarIcon} />
+            <Ionicons
+              name="calendar-outline"
+              size={24}
+              color={Colors.primary}
+              style={styles.calendarIcon}
+            />
             <Text style={styles.monthText}>
               {months[selectedMonth]} {selectedYear}
             </Text>
@@ -359,7 +364,9 @@ export default function Expenses() {
                   styles.expenseItem,
                   item.isGroup && styles.groupExpenseItem,
                 ]}
-                onLongPress={() => !item.isGroup && handleLongPressExpense(item)}
+                onLongPress={() =>
+                  !item.isGroup && handleLongPressExpense(item)
+                }
                 delayLongPress={500}
               >
                 <View>
@@ -375,7 +382,9 @@ export default function Expenses() {
                     </>
                   ) : (
                     <>
-                      <Text style={styles.expenseCategory}>{item.category}</Text>
+                      <Text style={styles.expenseCategory}>
+                        {item.category}
+                      </Text>
                       <Text style={styles.expenseDescription}>
                         {item.description}
                       </Text>
@@ -407,20 +416,62 @@ export default function Expenses() {
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <View style={styles.monthNavigator}>
-                <TouchableOpacity onPress={showYearGrid ? () => setYearPage(yearPage - 1) : handlePrevMonth} disabled={showYearGrid ? yearPage === 0 : selectedMonth === 0}>
-                  <Ionicons name="chevron-back" size={24} color={(showYearGrid ? yearPage === 0 : selectedMonth === 0) ? '#666' : 'white'} />
+                <TouchableOpacity
+                  onPress={
+                    showYearGrid
+                      ? () => setYearPage(yearPage - 1)
+                      : handlePrevMonth
+                  }
+                  disabled={showYearGrid ? yearPage === 0 : selectedMonth === 0}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={24}
+                    color={
+                      (showYearGrid ? yearPage === 0 : selectedMonth === 0)
+                        ? "#666"
+                        : "white"
+                    }
+                  />
                 </TouchableOpacity>
                 <View style={styles.dateSelector}>
                   <TouchableOpacity onPress={() => setShowYearGrid(false)}>
-                    <Text style={styles.modalTitle}>{months[selectedMonth]}</Text>
+                    <Text style={styles.modalTitle}>
+                      {months[selectedMonth]}
+                    </Text>
                   </TouchableOpacity>
                   <Text style={styles.modalTitleDivider}>/</Text>
                   <TouchableOpacity onPress={() => setShowYearGrid(true)}>
                     <Text style={styles.modalTitle}>{selectedYear}</Text>
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={showYearGrid ? () => setYearPage(yearPage + 1) : handleNextMonth} disabled={showYearGrid ? (2000 + (yearPage + 1) * YEARS_PER_PAGE) > new Date().getFullYear() : selectedMonth === 11}>
-                  <Ionicons name="chevron-forward" size={24} color={(showYearGrid ? (2000 + (yearPage + 1) * YEARS_PER_PAGE) > new Date().getFullYear() : selectedMonth === 11) ? '#666' : 'white'} />
+                <TouchableOpacity
+                  onPress={
+                    showYearGrid
+                      ? () => setYearPage(yearPage + 1)
+                      : handleNextMonth
+                  }
+                  disabled={
+                    showYearGrid
+                      ? 2000 + (yearPage + 1) * YEARS_PER_PAGE >
+                        new Date().getFullYear()
+                      : selectedMonth === 11
+                  }
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={
+                      (
+                        showYearGrid
+                          ? 2000 + (yearPage + 1) * YEARS_PER_PAGE >
+                            new Date().getFullYear()
+                          : selectedMonth === 11
+                      )
+                        ? "#666"
+                        : "white"
+                    }
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -434,17 +485,19 @@ export default function Expenses() {
                         key={year}
                         style={[
                           styles.yearItem,
-                          year === selectedYear && styles.selectedYear
+                          year === selectedYear && styles.selectedYear,
                         ]}
                         onPress={() => {
                           setSelectedYear(year);
                           setShowYearGrid(false);
                         }}
                       >
-                        <Text style={[
-                          styles.yearText,
-                          year === selectedYear && styles.selectedYearText
-                        ]}>
+                        <Text
+                          style={[
+                            styles.yearText,
+                            year === selectedYear && styles.selectedYearText,
+                          ]}
+                        >
                           {year}
                         </Text>
                       </TouchableOpacity>
@@ -458,17 +511,19 @@ export default function Expenses() {
                       key={month}
                       style={[
                         styles.monthItem,
-                        index === selectedMonth && styles.selectedMonth
+                        index === selectedMonth && styles.selectedMonth,
                       ]}
                       onPress={() => {
                         setSelectedMonth(index);
                         setShowMonthPicker(false);
                       }}
                     >
-                      <Text style={[
-                        styles.monthItemText,
-                        index === selectedMonth && styles.selectedMonthText
-                      ]}>
+                      <Text
+                        style={[
+                          styles.monthItemText,
+                          index === selectedMonth && styles.selectedMonthText,
+                        ]}
+                      >
                         {month.slice(0, 3)}
                       </Text>
                     </TouchableOpacity>
@@ -627,44 +682,44 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   modalContent: {
-    backgroundColor: '#2C2C2E',
+    backgroundColor: "#2C2C2E",
     padding: 20,
     borderRadius: 12,
-    width: '90%',
-    alignSelf: 'center',
+    width: "90%",
+    alignSelf: "center",
     marginTop: 100,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: 'white',
+    color: "white",
     textAlign: "center",
     marginBottom: 20,
   },
   calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: 10,
   },
   dayHeader: {
-    color: '#8E8E93',
+    color: "#8E8E93",
     width: 40,
-    textAlign: 'center',
+    textAlign: "center",
   },
   calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
   },
   calendarDay: {
-    width: '14.28%',
+    width: "14.28%",
     aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 5,
   },
   calendarDayText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
   },
   currentDay: {
@@ -672,8 +727,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   currentDayText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
   modalButton: {
     backgroundColor: Colors.primary,
@@ -682,9 +737,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   modalButtonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
+    color: "white",
+    textAlign: "center",
+    fontWeight: "bold",
   },
   groupExpenseItem: {
     borderLeftWidth: 4,
@@ -711,47 +766,47 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   monthNavigator: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 10,
   },
   dateSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   dateToggle: {
     padding: 8,
     borderRadius: 8,
   },
   dateToggleActive: {
-    backgroundColor: Colors.primary + '40',
+    backgroundColor: Colors.primary + "40",
   },
   modalTitleDivider: {
-    color: 'white',
+    color: "white",
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginHorizontal: 4,
   },
   yearNavigator: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginVertical: 10,
   },
   yearNavButton: {
     padding: 10,
   },
   yearGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     padding: 10,
   },
   yearItem: {
-    width: '30%',
+    width: "30%",
     padding: 15,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 10,
     borderRadius: 8,
   },
@@ -759,30 +814,30 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   yearText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
   },
   selectedYearText: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   selectedDay: {
-    backgroundColor: Colors.primary + '80',
+    backgroundColor: Colors.primary + "80",
     borderRadius: 20,
   },
   selectedDayText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
   monthGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     padding: 10,
   },
   monthItem: {
-    width: '25%', // 4 months per row
+    width: "25%", // 4 months per row
     padding: 15,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 10,
     borderRadius: 8,
   },
@@ -790,28 +845,28 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   monthItemText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
   },
   selectedMonthText: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   disabledYear: {
     opacity: 0.5,
   },
   disabledYearText: {
-    color: '#666666',
+    color: "#666666",
   },
   todayButton: {
     backgroundColor: Colors.primary,
     padding: 10,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 10,
   },
   todayButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
   gradientBackground: {
     flex: 1,

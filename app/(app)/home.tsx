@@ -1,11 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, RefreshControl, FlatList, StatusBar } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  RefreshControl,
+  FlatList,
+  StatusBar,
+} from "react-native";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
-import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, orderBy, limit } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc as firestoreDoc,
+  getDoc,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 import { db } from "../config/firebase";
 import { Colors } from "../constants/Colors";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 
 type ExpenseSummary = {
   totalPersonal: number;
@@ -72,12 +88,15 @@ export default function Home() {
 
       for (const expenseDoc of groupExpensesSnapshot.docs) {
         const expenseData = expenseDoc.data();
-        const shareAmount = expenseData.amount / expenseData.splitBetween.length;
+        const shareAmount =
+          expenseData.amount / expenseData.splitBetween.length;
         totalGroupShare += shareAmount;
 
         const groupRef = firestoreDoc(db, "groups", expenseData.groupId);
         const groupDoc = await getDoc(groupRef);
-        const groupName = groupDoc.exists() ? groupDoc.data().name : "Unknown Group";
+        const groupName = groupDoc.exists()
+          ? groupDoc.data().name
+          : "Unknown Group";
 
         groupExpenses.push({
           id: expenseDoc.id,
@@ -134,7 +153,8 @@ export default function Home() {
       </View>
       <View style={styles.expenseAmount}>
         <Text style={styles.amount}>
-          {item.isGroup ? item.shareAmount?.toFixed(2) : item.amount.toFixed(2)} kr
+          {item.isGroup ? item.shareAmount?.toFixed(2) : item.amount.toFixed(2)}{" "}
+          kr
         </Text>
         {item.isGroup && <Text style={styles.groupTag}>Group</Text>}
       </View>
@@ -146,10 +166,10 @@ export default function Home() {
       <StatusBar translucent backgroundColor="transparent" />
       <LinearGradient
         colors={[
-          Colors.primary + '40',
-          Colors.primary + '15',
-          Colors.primary + '08',
-          Colors.accent + '05'
+          Colors.primary + "40",
+          Colors.primary + "15",
+          Colors.primary + "08",
+          Colors.accent + "05",
         ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
@@ -191,8 +211,18 @@ export default function Home() {
           </Text>
         </View>
 
+
         <Text style={styles.sectionTitle}>Recent Expenses</Text>
       </View>
+
+            <View style={styles.totalExpense}>
+              <Text style={styles.totalExpenseTitle}>Total Expenses</Text>
+              <Text style={styles.totalExpenseAmount}>
+                {(summary.totalPersonal + summary.totalGroupShare).toFixed(2)}{" "}
+                kr
+              </Text>
+            </View>
+
 
       <FlatList
         style={styles.expensesList}
@@ -218,7 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   gradientBackground: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     top: 0,
@@ -342,4 +372,3 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
 });
-

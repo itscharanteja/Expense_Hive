@@ -41,7 +41,11 @@ export default function Login() {
 
   return (
     <>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
       <LinearGradient
         colors={[Colors.primary, Colors.accent]}
         style={styles.gradient}
@@ -50,7 +54,7 @@ export default function Login() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.container}
         >
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
           >
@@ -150,8 +154,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
-    marginTop: -40,
+    elevation: 3,
     marginBottom: 10,
   },
   input: {
