@@ -121,13 +121,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "space-between",
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 0,
+    paddingBottom: 80,
     paddingHorizontal: 20,
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 80,
+    marginTop: 60,
     marginBottom: 0,
   },
   logo: {
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: 26,
   },
   footerText: {
     color: Colors.text,
