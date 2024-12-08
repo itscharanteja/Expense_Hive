@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, RefreshControl, FlatList } from "react-native";
+import { View, Text, StyleSheet, RefreshControl, FlatList, StatusBar } from "react-native";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
+
+import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, orderBy, limit } from "firebase/firestore";
+
 import {
   collection,
   query,
@@ -14,8 +17,10 @@ import {
   limit,
   onSnapshot,
 } from "firebase/firestore";
+
 import { db } from "../config/firebase";
 import { Colors } from "../constants/Colors";
+import { LinearGradient } from 'expo-linear-gradient';
 
 type ExpenseSummary = {
   totalPersonal: number;
@@ -51,7 +56,6 @@ export default function Home() {
     if (!user) return;
 
     try {
-      // Fetch personal expenses
       const personalExpensesQuery = query(
         collection(db, "expenses"),
         where("userId", "==", user.uid)
@@ -62,7 +66,6 @@ export default function Home() {
         0
       );
 
-      // Get recent personal expenses
       const personalExpenses = personalExpensesSnapshot.docs.map((doc) => ({
         id: doc.id,
         amount: doc.data().amount,
@@ -71,7 +74,6 @@ export default function Home() {
         isGroup: false,
       }));
 
-      // Fetch group expenses
       const groupExpensesQuery = query(
         collection(db, "groupExpenses"),
         where("splitBetween", "array-contains", user.email),
@@ -85,16 +87,12 @@ export default function Home() {
 
       for (const expenseDoc of groupExpensesSnapshot.docs) {
         const expenseData = expenseDoc.data();
-        const shareAmount =
-          expenseData.amount / expenseData.splitBetween.length;
+        const shareAmount = expenseData.amount / expenseData.splitBetween.length;
         totalGroupShare += shareAmount;
 
-        // Get group name
         const groupRef = firestoreDoc(db, "groups", expenseData.groupId);
         const groupDoc = await getDoc(groupRef);
-        const groupName = groupDoc.exists()
-          ? groupDoc.data().name
-          : "Unknown Group";
+        const groupName = groupDoc.exists() ? groupDoc.data().name : "Unknown Group";
 
         groupExpenses.push({
           id: expenseDoc.id,
@@ -108,7 +106,6 @@ export default function Home() {
         });
       }
 
-      // Combine and sort all expenses
       const allExpenses = [...personalExpenses, ...groupExpenses]
         .sort((a, b) => b.date.getTime() - a.date.getTime())
         .slice(0, 5);
@@ -116,8 +113,8 @@ export default function Home() {
       setSummary({
         totalPersonal,
         totalGroupShare,
-        pendingTasks: 0, // You can implement this if needed
-        groupCount: 0, // You can implement this if needed
+        pendingTasks: 0,
+        groupCount: 0,
         recentExpenses: allExpenses,
       });
     } catch (error) {
@@ -152,8 +149,7 @@ export default function Home() {
       </View>
       <View style={styles.expenseAmount}>
         <Text style={styles.amount}>
-          {item.isGroup ? item.shareAmount?.toFixed(2) : item.amount.toFixed(2)}{" "}
-          kr
+          {item.isGroup ? item.shareAmount?.toFixed(2) : item.amount.toFixed(2)} kr
         </Text>
         {item.isGroup && <Text style={styles.groupTag}>Group</Text>}
       </View>
@@ -162,6 +158,18 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" />
+      <LinearGradient
+        colors={[
+          Colors.primary + '40',
+          Colors.primary + '15',
+          Colors.primary + '08',
+          Colors.accent + '05'
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.gradientBackground}
+      />
       <FlatList
         ListHeaderComponent={() => (
           <>
@@ -199,10 +207,10 @@ export default function Home() {
             <View style={styles.totalExpense}>
               <Text style={styles.totalExpenseTitle}>Total Expenses</Text>
               <Text style={styles.totalExpenseAmount}>
-                {(summary.totalPersonal + summary.totalGroupShare).toFixed(2)}{" "}
-                kr
+                {(summary.totalPersonal + summary.totalGroupShare).toFixed(2)} kr
               </Text>
             </View>
+
             <Text style={styles.sectionTitle}>Recent Expenses</Text>
           </>
         )}
@@ -225,8 +233,19 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+
+
     backgroundColor: Colors.white,
+
     padding: 20,
+    paddingTop: 60,
+  },
+  gradientBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
   welcomeSection: {
     marginBottom: 24,
@@ -269,15 +288,14 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   totalExpense: {
-    backgroundColor: "#ffffff",
     padding: 16,
-    borderRadius: 12,
     alignItems: "center",
     marginBottom: 24,
   },
   totalExpenseTitle: {
     fontSize: 16,
     color: "#666",
+    fontWeight: "500",
   },
   totalExpenseAmount: {
     fontSize: 28,
@@ -289,10 +307,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 12,
   },
-  notificationsSection: {
-    flex: 1,
-    marginBottom: 24,
-  },
   expenseItem: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -300,7 +314,6 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 12,
     marginBottom: 8,
-    marginHorizontal: 4,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -341,3 +354,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
