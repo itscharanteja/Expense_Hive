@@ -2,22 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, RefreshControl, FlatList, StatusBar } from "react-native";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
-
 import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, orderBy, limit } from "firebase/firestore";
-
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  doc as firestoreDoc,
-  getDoc,
-  Timestamp,
-  orderBy,
-  limit,
-  onSnapshot,
-} from "firebase/firestore";
-
 import { db } from "../config/firebase";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -233,10 +218,6 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-
-
-    backgroundColor: Colors.white,
-
     padding: 20,
     paddingTop: 60,
   },
