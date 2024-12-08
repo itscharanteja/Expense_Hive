@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from "expo-router";
 import {
   doc,
@@ -169,104 +169,74 @@ export default function ExpenseDetails() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Expense Details</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <ScrollView style={styles.content}>
-        {/* Expense Details Card */}
-        <View style={styles.card}>
-          <Text style={styles.description}>{expense.description}</Text>
-          <Text style={styles.amount}>{expense.amount.toFixed(2)} kr</Text>
-          <View style={styles.expenseMetaContainer}>
-            <Text style={styles.date}>{expense.date.toLocaleDateString()}</Text>
-            <View style={styles.creatorTag}>
-              <Ionicons name="person-outline" size={14} color="#007AFF" />
-              <Text style={styles.creatorText}>
-                Added by {getUsername(expense.paidBy)}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.paidBy}>
-            Paid by {getUsername(expense.paidBy)}
-          </Text>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <View style={styles.contentContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#007AFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Expense Details</Text>
+          <View style={{ width: 24 }} />
         </View>
 
-        {/* Split Details Card */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Split Details</Text>
-          <View style={styles.splitInfo}>
-            <Text style={styles.splitTotal}>
-              Total Amount: {expense?.amount.toFixed(2)} kr
-            </Text>
-            <Text style={styles.splitPerPerson}>
-              Amount per person:{" "}
-              {(
-                (expense?.amount || 0) / (expense?.splitBetween?.length || 1)
-              ).toFixed(2)}{" "}
-              kr
+        <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+          {/* Expense Details Card */}
+          <View style={styles.card}>
+            <Text style={styles.description}>{expense.description}</Text>
+            <Text style={styles.amount}>{expense.amount.toFixed(2)} kr</Text>
+            <View style={styles.expenseMetaContainer}>
+              <Text style={styles.date}>{expense.date.toLocaleDateString()}</Text>
+              <View style={styles.creatorTag}>
+                <Ionicons name="person-outline" size={14} color="#007AFF" />
+                <Text style={styles.creatorText}>
+                  Added by {getUsername(expense.paidBy)}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.paidBy}>
+              Paid by {getUsername(expense.paidBy)}
             </Text>
           </View>
 
-          <View style={styles.membersList}>
-            {expense?.splitBetween.map((email) => (
-              <View key={email} style={styles.memberRow}>
-                <View style={styles.memberInfo}>
-                  <Text
-                    style={styles.memberEmail}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {getUsername(email)}
-                  </Text>
-                  <Text style={styles.memberAmount}>
-                    {(
-                      (expense?.amount || 0) /
-                      (expense?.splitBetween?.length || 1)
-                    ).toFixed(2)}{" "}
-                    kr
-                  </Text>
-                </View>
-                {email === expense?.paidBy ? (
-                  <View style={styles.paidIndicator}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color="#34C759"
-                    />
-                    <Text style={styles.paidText}>Paid</Text>
-                  </View>
-                ) : email === user?.email ? (
-                  <TouchableOpacity
-                    style={[
-                      styles.paidButton,
-                      expense?.paidMembers?.includes(email) &&
-                        styles.paidButtonActive,
-                    ]}
-                    onPress={() => togglePaidStatus(email)}
-                  >
+          {/* Split Details Card */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Split Details</Text>
+            <View style={styles.splitInfo}>
+              <Text style={styles.splitTotal}>
+                Total Amount: {expense?.amount.toFixed(2)} kr
+              </Text>
+              <Text style={styles.splitPerPerson}>
+                Amount per person:{" "}
+                {(
+                  (expense?.amount || 0) / (expense?.splitBetween?.length || 1)
+                ).toFixed(2)}{" "}
+                kr
+              </Text>
+            </View>
+
+            <View style={styles.membersList}>
+              {expense?.splitBetween.map((email) => (
+                <View key={email} style={styles.memberRow}>
+                  <View style={styles.memberInfo}>
                     <Text
-                      style={[
-                        styles.paidButtonText,
-                        expense?.paidMembers?.includes(email) &&
-                          styles.paidButtonTextActive,
-                      ]}
+                      style={styles.memberEmail}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
                     >
-                      {expense?.paidMembers?.includes(email)
-                        ? "Paid"
-                        : "Mark as Paid"}
+                      {getUsername(email)}
                     </Text>
-                  </TouchableOpacity>
-                ) : (
-                  expense?.paidMembers?.includes(email) && (
+                    <Text style={styles.memberAmount}>
+                      {(
+                        (expense?.amount || 0) /
+                        (expense?.splitBetween?.length || 1)
+                      ).toFixed(2)}{" "}
+                      kr
+                    </Text>
+                  </View>
+                  {email === expense?.paidBy ? (
                     <View style={styles.paidIndicator}>
                       <Ionicons
                         name="checkmark-circle"
@@ -275,68 +245,100 @@ export default function ExpenseDetails() {
                       />
                       <Text style={styles.paidText}>Paid</Text>
                     </View>
-                  )
-                )}
-              </View>
-            ))}
+                  ) : email === user?.email ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.paidButton,
+                        expense?.paidMembers?.includes(email) &&
+                          styles.paidButtonActive,
+                      ]}
+                      onPress={() => togglePaidStatus(email)}
+                    >
+                      <Text
+                        style={[
+                          styles.paidButtonText,
+                          expense?.paidMembers?.includes(email) &&
+                            styles.paidButtonTextActive,
+                        ]}
+                      >
+                        {expense?.paidMembers?.includes(email)
+                          ? "Paid"
+                          : "Mark as Paid"}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    expense?.paidMembers?.includes(email) && (
+                      <View style={styles.paidIndicator}>
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={20}
+                          color="#34C759"
+                        />
+                        <Text style={styles.paidText}>Paid</Text>
+                      </View>
+                    )
+                  )}
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
 
-        {/* Receipt Card */}
-        {receipt && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Receipt</Text>
-            <Image
-              source={{ uri: receipt }}
-              style={styles.receiptImage}
-              resizeMode="contain"
-            />
-          </View>
-        )}
+          {/* Receipt Card */}
+          {receipt && (
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Receipt</Text>
+              <Image
+                source={{ uri: receipt }}
+                style={styles.receiptImage}
+                resizeMode="contain"
+              />
+            </View>
+          )}
 
-        {/* Delete Button */}
-        {expense.paidBy === user?.email && (
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => {
-              Alert.alert(
-                "Delete Expense",
-                "Are you sure you want to delete this expense?",
-                [
-                  {
-                    text: "Cancel",
-                    style: "cancel",
-                  },
-                  {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: async () => {
-                      try {
-                        if (expense.receiptId) {
-                          await deleteDoc(
-                            doc(db, "receipts", expense.receiptId)
-                          );
-                        }
-                        await deleteDoc(
-                          doc(db, "groupExpenses", expenseId as string)
-                        );
-                        Alert.alert("Success", "Expense deleted successfully");
-                        router.back();
-                      } catch (error) {
-                        console.error("Error deleting expense:", error);
-                        Alert.alert("Error", "Failed to delete expense");
-                      }
+          {/* Delete Button */}
+          {expense.paidBy === user?.email && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => {
+                Alert.alert(
+                  "Delete Expense",
+                  "Are you sure you want to delete this expense?",
+                  [
+                    {
+                      text: "Cancel",
+                      style: "cancel",
                     },
-                  },
-                ]
-              );
-            }}
-          >
-            <Ionicons name="trash-outline" size={20} color="white" />
-            <Text style={styles.deleteButtonText}>Delete Expense</Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: async () => {
+                        try {
+                          if (expense.receiptId) {
+                            await deleteDoc(
+                              doc(db, "receipts", expense.receiptId)
+                            );
+                          }
+                          await deleteDoc(
+                            doc(db, "groupExpenses", expenseId as string)
+                          );
+                          Alert.alert("Success", "Expense deleted successfully");
+                          router.back();
+                        } catch (error) {
+                          console.error("Error deleting expense:", error);
+                          Alert.alert("Error", "Failed to delete expense");
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+            >
+              <Ionicons name="trash-outline" size={20} color="white" />
+              <Text style={styles.deleteButtonText}>Delete Expense</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -350,18 +352,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  contentContainer: {
+    flex: 1,
+    paddingTop: 4,     // Decreased from 8 to 4
+    paddingBottom: 16,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 4,   // Decreased from 6 to 4
+    marginBottom: 0,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     backgroundColor: "#fff",
   },
   backButton: {
-    padding: 8,
+    padding: 4,         // Decreased from 8 to 4
   },
   headerTitle: {
     fontSize: 20,
@@ -369,7 +381,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 0,      // Removed top padding completely
+  },
+  scrollContent: {
+    paddingBottom: 24, // Increased bottom padding
   },
   card: {
     backgroundColor: "white",
@@ -388,16 +404,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   amount: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
     color: "#007AFF",
     marginBottom: 8,
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   expenseMetaContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   date: {
     fontSize: 14,
@@ -461,18 +480,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 16,
+    maxWidth: '65%',
   },
   memberEmail: {
     fontSize: 16,
     color: "#333",
     flex: 1,
-    marginRight: 8,
+    marginRight: 12,
+    flexShrink: 1,
   },
   memberAmount: {
     fontSize: 16,
     fontWeight: "500",
     color: "#007AFF",
+    minWidth: 80,
+    textAlign: 'right',
   },
   receiptImage: {
     width: "100%",

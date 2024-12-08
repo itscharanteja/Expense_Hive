@@ -112,11 +112,22 @@ export default function AddGroupTask() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Add Task</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle}>Add Task</Text>
+        <TouchableOpacity 
+          style={styles.doneButton}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        >
+          <Text style={[
+            styles.doneButtonText,
+            isSubmitting && styles.buttonDisabled
+          ]}>
+            Done
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <TextInput
@@ -174,16 +185,6 @@ export default function AddGroupTask() {
         }}
         onCancel={() => setDatePickerVisible(false)}
       />
-
-      <TouchableOpacity
-        style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={isSubmitting}
-      >
-        <Text style={styles.buttonText}>
-          {isSubmitting ? "Adding..." : "Add Task"}
-        </Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -193,15 +194,24 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: "#fff",
+    paddingTop: 0,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+    backgroundColor: "#fff",
+    marginHorizontal: -20,
   },
-  title: {
-    fontSize: 24,
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
     fontWeight: "bold",
   },
   input: {
@@ -255,18 +265,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#007AFF",
   },
-  submitButton: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
+  doneButton: {
+    padding: 8,
+  },
+  doneButtonText: {
+    color: '#34C759',  // iOS green color
+    fontSize: 17,
+    fontWeight: '600',
   },
   buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+    opacity: 0.5,
   },
 });
