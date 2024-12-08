@@ -155,54 +155,47 @@ export default function Home() {
         end={{ x: 0, y: 1 }}
         style={styles.gradientBackground}
       />
+      
+      <View style={styles.headerSection}>
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeText}>Welcome back!</Text>
+          <Text style={styles.username}>
+            @{userData?.username 
+              ? userData.username.charAt(0).toUpperCase() + userData.username.slice(1) 
+              : 'User'}
+          </Text>
+        </View>
+
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryCard}>
+            <Ionicons name="wallet-outline" size={24} color={Colors.primary} />
+            <Text style={styles.summaryTitle}>Personal Expenses</Text>
+            <Text style={styles.summaryAmount}>
+              {summary.totalPersonal.toFixed(2)} kr
+            </Text>
+          </View>
+
+          <View style={styles.summaryCard}>
+            <Ionicons name="people-outline" size={24} color={Colors.primary} />
+            <Text style={styles.summaryTitle}>My Group Shares</Text>
+            <Text style={styles.summaryAmount}>
+              {summary.totalGroupShare.toFixed(2)} kr
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.totalExpense}>
+          <Text style={styles.totalExpenseTitle}>Total Expenses</Text>
+          <Text style={styles.totalExpenseAmount}>
+            {(summary.totalPersonal + summary.totalGroupShare).toFixed(2)} kr
+          </Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>Recent Expenses</Text>
+      </View>
+
       <FlatList
-        ListHeaderComponent={() => (
-          <>
-            <View style={styles.welcomeSection}>
-              <Text style={styles.welcomeText}>Welcome back!</Text>
-              <Text style={styles.username}>
-                @{userData?.username 
-                  ? userData.username.charAt(0).toUpperCase() + userData.username.slice(1) 
-                  : 'User'}
-              </Text>
-            </View>
-
-            <View style={styles.summaryContainer}>
-              <View style={styles.summaryCard}>
-                <Ionicons
-                  name="wallet-outline"
-                  size={24}
-                  color={Colors.primary}
-                />
-                <Text style={styles.summaryTitle}>Personal Expenses</Text>
-                <Text style={styles.summaryAmount}>
-                  {summary.totalPersonal.toFixed(2)} kr
-                </Text>
-              </View>
-
-              <View style={styles.summaryCard}>
-                <Ionicons
-                  name="people-outline"
-                  size={24}
-                  color={Colors.primary}
-                />
-                <Text style={styles.summaryTitle}>My Group Shares</Text>
-                <Text style={styles.summaryAmount}>
-                  {summary.totalGroupShare.toFixed(2)} kr
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.totalExpense}>
-              <Text style={styles.totalExpenseTitle}>Total Expenses</Text>
-              <Text style={styles.totalExpenseAmount}>
-                {(summary.totalPersonal + summary.totalGroupShare).toFixed(2)} kr
-              </Text>
-            </View>
-
-            <Text style={styles.sectionTitle}>Recent Expenses</Text>
-          </>
-        )}
+        style={styles.expensesList}
         data={summary.recentExpenses}
         renderItem={renderRecentExpense}
         keyExtractor={(item) => item.id}
@@ -222,8 +215,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    paddingTop: 60,
+    backgroundColor: '#fff',
   },
   gradientBackground: {
     position: 'absolute',
@@ -231,6 +223,11 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
+  },
+  headerSection: {
+    padding: 20,
+    paddingTop: 60,
+    paddingBottom: 0,
   },
   welcomeSection: {
     marginBottom: 24,
@@ -276,7 +273,7 @@ const styles = StyleSheet.create({
   totalExpense: {
     padding: 16,
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   totalExpenseTitle: {
     fontSize: 16,
@@ -291,7 +288,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   expenseItem: {
     flexDirection: "row",
@@ -338,6 +335,11 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 16,
     fontWeight: "bold",
+  },
+  expensesList: {
+    flex: 1,
+    paddingHorizontal: 20,
+    marginTop: -4,
   },
 });
 

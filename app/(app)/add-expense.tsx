@@ -14,6 +14,8 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors } from "../constants/Colors";
 
 const categories = [
   "Food & Drinks",
@@ -88,86 +90,116 @@ export default function AddExpense() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Add Expense</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <ScrollView style={styles.content}>
-        <TextInput
-          style={styles.input}
-          placeholder="Amount"
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="decimal-pad"
-        />
-
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={category}
-            onValueChange={(itemValue) => setCategory(itemValue)}
-            style={styles.picker}
-          >
-            {categories.map((cat) => (
-              <Picker.Item key={cat} label={cat} value={cat} />
-            ))}
-          </Picker>
-        </View>
-
-        <TextInput
-          style={[styles.input, styles.descriptionInput]}
-          placeholder="Description"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
-
-        <TouchableOpacity
-          style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
+    <LinearGradient
+      colors={[
+        '#F0F7FF',    // Soft sky blue
+        '#F5FAFF',    // Lighter sky blue
+        '#F8FCFF',    // Very light blue
+        '#FFFFFF',    // White
+      ]}
+      locations={[0, 0.3, 0.6, 1]}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={styles.gradientBackground}
+    >
+      <View style={styles.mainContainer}>
+        <ScrollView 
+          style={styles.container}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.buttonText}>
-            {isSubmitting ? "Adding..." : "Add Expense"}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="#007AFF" />
+            </TouchableOpacity>
+            <Text style={styles.title}>Add Expense</Text>
+          </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Amount"
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="decimal-pad"
+          />
+
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={category}
+              onValueChange={(itemValue) => setCategory(itemValue)}
+              style={styles.picker}
+            >
+              {categories.map((cat) => (
+                <Picker.Item key={cat} label={cat} value={cat} />
+              ))}
+            </Picker>
+          </View>
+
+          <TextInput
+            style={[styles.input, styles.descriptionInput]}
+            placeholder="Description"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+          />
+
+          <TouchableOpacity
+            style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+          >
+            <Text style={styles.buttonText}>
+              {isSubmitting ? "Adding..." : "Add Expense"}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradientBackground: {
+    flex: 1,
+  },
+  mainContainer: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    paddingHorizontal: 20,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingTop: 20,
+    paddingBottom: 40,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
+    justifyContent: "center",
     paddingVertical: 24,
     paddingTop: 32,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     marginBottom: 16,
+    paddingHorizontal: 0,
+    position: 'relative',
   },
   backButton: {
     padding: 8,
+    width: 40,
+    position: 'absolute',
+    left: 0,
+    zIndex: 1,
   },
   title: {
     fontSize: 20,
     fontWeight: "bold",
     marginTop: 8,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 32,
+    textAlign: 'center',
+    marginLeft: 0,
   },
   input: {
     borderWidth: 1,
@@ -197,6 +229,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: 20,
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
   },
   buttonDisabled: {
     opacity: 0.7,
