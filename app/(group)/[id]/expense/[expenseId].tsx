@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from "expo-router";
@@ -22,6 +23,7 @@ import {
 import { db } from "../../../config/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../../context/auth";
+import ImageViewer from 'react-native-image-zoom-viewer';
 
 type ExpenseDetails = {
   id: string;
@@ -44,6 +46,7 @@ export default function ExpenseDetails() {
   const [memberUsernames, setMemberUsernames] = useState<{
     [key: string]: string;
   }>({});
+  const [isImageFullScreen, setIsImageFullScreen] = useState(false);
 
   useEffect(() => {
     const fetchExpenseAndUsernames = async () => {
@@ -287,11 +290,16 @@ export default function ExpenseDetails() {
           {receipt && (
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Receipt</Text>
-              <Image
-                source={{ uri: receipt }}
-                style={styles.receiptImage}
-                resizeMode="contain"
-              />
+              <TouchableOpacity
+                onPress={() => setIsImageFullScreen(true)}
+                activeOpacity={0.9}
+              >
+                <Image
+                  source={{ uri: receipt }}
+                  style={styles.receiptImage}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -339,6 +347,40 @@ export default function ExpenseDetails() {
           )}
         </ScrollView>
       </View>
+
+      {/* Add Modal for full-screen image */}
+      <Modal
+        visible={isImageFullScreen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsImageFullScreen(false)}
+      >
+        <View style={styles.fullScreenContainer}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setIsImageFullScreen(false)}
+          >
+            <Ionicons name="close" size={28} color="white" />
+          </TouchableOpacity>
+          <ImageViewer
+            imageUrls={[{ url: receipt || '' }]}
+            enableSwipeDown
+            onSwipeDown={() => setIsImageFullScreen(false)}
+            renderIndicator={() => <></>}
+            maxOverflow={0}
+            saveToLocalByLongPress={false}
+            style={styles.fullScreenImage}
+            backgroundColor="rgba(0, 0, 0, 0.95)"
+            renderImage={(props) => (
+              <Image
+                {...props}
+                style={styles.zoomedImage}
+                resizeMode="contain"
+              />
+            )}
+          />
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -382,10 +424,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 0,      // Removed top padding completely
+    paddingTop: 16,     // Add top padding
   },
   scrollContent: {
-    paddingBottom: 24, // Increased bottom padding
+    paddingTop: 12,     // Add padding to scroll content
+    paddingBottom: 24,
   },
   card: {
     backgroundColor: "white",
@@ -397,6 +440,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+    marginTop: 8,      // Add top margin to first card
   },
   description: {
     fontSize: 20,
@@ -560,5 +604,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     color: "#333",
+  },
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    paddingHorizontal: 20,
+  },
+  fullScreenImage: {
+    flex: 1,
+  },
+  zoomedImage: {
+    width: '100%',
+    height: '90%',
+    alignSelf: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 2,
+    padding: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
   },
 });

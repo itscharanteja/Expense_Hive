@@ -330,6 +330,10 @@ export default function Expenses() {
           </Text>
         </View>
 
+        <Text style={styles.monthlyExpensesTitle}>
+          {months[selectedMonth]} Expenses
+        </Text>
+
         {loading ? (
           <ActivityIndicator size="large" color="#007AFF" />
         ) : expenses.length === 0 ? (
@@ -658,6 +662,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     alignItems: "center",
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   totalLabel: {
     fontSize: 16,
@@ -862,5 +871,12 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     flex: 1,
+  },
+  monthlyExpensesTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Colors.black,
+    marginBottom: 12,
+    marginLeft: 4,
   },
 });
