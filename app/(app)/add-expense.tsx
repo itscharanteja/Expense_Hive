@@ -193,7 +193,6 @@ export default function AddExpense() {
               selectedValue={category}
               onValueChange={(itemValue) => setCategory(itemValue)}
               style={styles.picker}
-
               itemStyle={{ fontSize: 16, height: 60 }}
             >
               <Picker.Item 
@@ -207,9 +206,6 @@ export default function AddExpense() {
                   label={cat} 
                   value={cat}
                 />
-            
-              {categories.map((cat) => (
-                <Picker.Item key={cat} label={cat} value={cat} />
               ))}
             </Picker>
           </View>

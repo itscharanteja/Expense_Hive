@@ -885,14 +885,10 @@ const styles = StyleSheet.create({
     color: Colors.black,
     marginBottom: 12,
     marginLeft: 4,
+    flexWrap: 'wrap',
+  },
   monthlyExpensesHeader: {
     marginBottom: 16,
     paddingHorizontal: 4,
-  },
-  monthlyExpensesTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: Colors.text,
-    flexWrap: 'wrap',
   },
 });
