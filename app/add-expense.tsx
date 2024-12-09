@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
@@ -65,45 +66,47 @@ export default function AddExpense() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Add Expense</Text>
+      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.title}>Add Expense</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Amount"
-        value={amount}
-        onChangeText={setAmount}
-        keyboardType="decimal-pad"
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="Amount"
+          value={amount}
+          onChangeText={setAmount}
+          keyboardType="decimal-pad"
+        />
 
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={category}
-          onValueChange={(itemValue) => setCategory(itemValue)}
-          style={styles.picker}
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={category}
+            onValueChange={(itemValue) => setCategory(itemValue)}
+            style={styles.picker}
+          >
+            {categories.map((cat) => (
+              <Picker.Item key={cat} label={cat} value={cat} />
+            ))}
+          </Picker>
+        </View>
+
+        <TextInput
+          style={[styles.input, styles.descriptionInput]}
+          placeholder="Description"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+        />
+
+        <TouchableOpacity
+          style={[styles.button, isSubmitting && styles.buttonDisabled]}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
         >
-          {categories.map((cat) => (
-            <Picker.Item key={cat} label={cat} value={cat} />
-          ))}
-        </Picker>
-      </View>
-
-      <TextInput
-        style={[styles.input, styles.descriptionInput]}
-        placeholder="Description"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-      />
-
-      <TouchableOpacity
-        style={[styles.button, isSubmitting && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={isSubmitting}
-      >
-        <Text style={styles.buttonText}>
-          {isSubmitting ? "Adding..." : "Add Expense"}
-        </Text>
-      </TouchableOpacity>
+          <Text style={styles.buttonText}>
+            {isSubmitting ? "Adding..." : "Add Expense"}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
@@ -111,8 +114,15 @@ export default function AddExpense() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContainer: {
     padding: 20,
     paddingTop: 80,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 24,
@@ -143,6 +153,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
     padding: 15,
     borderRadius: 5,
+    marginTop: -20,
   },
   buttonText: {
     color: "white",

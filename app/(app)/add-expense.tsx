@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from "../constants/Colors";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
+
 const categories = [
   "Food & Drinks",
   "Shopping",
@@ -163,6 +164,7 @@ export default function AddExpense() {
             keyboardType="decimal-pad"
           />
 
+
           <TouchableOpacity
             style={styles.dateButton}
             onPress={showDatePicker}
@@ -185,11 +187,13 @@ export default function AddExpense() {
             maximumDate={new Date()}
           />
 
+
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={category}
               onValueChange={(itemValue) => setCategory(itemValue)}
               style={styles.picker}
+
               itemStyle={{ fontSize: 16, height: 60 }}
             >
               <Picker.Item 
@@ -203,6 +207,9 @@ export default function AddExpense() {
                   label={cat} 
                   value={cat}
                 />
+            
+              {categories.map((cat) => (
+                <Picker.Item key={cat} label={cat} value={cat} />
               ))}
             </Picker>
           </View>

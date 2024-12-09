@@ -354,6 +354,7 @@ export default function Home() {
           <View style={styles.summaryCard}>
             <Ionicons name="wallet-outline" size={24} color={Colors.primary} />
             <Text style={styles.summaryTitle}>Personal</Text>
+            <Text style={styles.summaryTitle}>Personal Expenses</Text>
             <Text style={styles.summaryAmount}>
               {summary.totalPersonal.toFixed(2)} kr
             </Text>
@@ -362,6 +363,8 @@ export default function Home() {
           <View style={styles.summaryCard}>
             <Ionicons name="people-outline" size={24} color={Colors.primary} />
             <Text style={styles.summaryTitle}>Group</Text>
+
+            <Text style={styles.summaryTitle}>My Group Shares</Text>
             <Text style={styles.summaryAmount}>
               {summary.totalGroupShare.toFixed(2)} kr
             </Text>
@@ -371,6 +374,9 @@ export default function Home() {
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Total Expenses</Text>
           <Text style={styles.totalAmount}>
+        <View style={styles.totalExpense}>
+          <Text style={styles.totalExpenseTitle}>Total Expenses</Text>
+          <Text style={styles.totalExpenseAmount}>
             {(summary.totalPersonal + summary.totalGroupShare).toFixed(2)} kr
           </Text>
         </View>
@@ -378,6 +384,16 @@ export default function Home() {
 
         <Text style={styles.sectionTitle}>Recent Expenses</Text>
       </View>
+
+
+            <View style={styles.totalExpense}>
+              <Text style={styles.totalExpenseTitle}>Total Expenses</Text>
+              <Text style={styles.totalExpenseAmount}>
+                {(summary.totalPersonal + summary.totalGroupShare).toFixed(2)}{" "}
+                kr
+              </Text>
+            </View>
+
 
       <FlatList
         style={styles.expensesList}
@@ -461,6 +477,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     alignItems: "center",
+    marginBottom: 16,
   },
   totalLabel: {
     fontSize: 16,
@@ -528,6 +545,11 @@ const styles = StyleSheet.create({
   },
   groupAmount: {
     color: Colors.accent,
+  },
+  expensesList: {
+    flex: 1,
+    paddingHorizontal: 20,
+    marginTop: -4,
   },
   expensesList: {
     flex: 1,
