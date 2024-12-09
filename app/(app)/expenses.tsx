@@ -330,6 +330,15 @@ export default function Expenses() {
           </Text>
         </View>
 
+        <Text style={styles.monthlyExpensesTitle}>
+          {months[selectedMonth]} Expenses
+        </Text>
+        <View style={styles.monthlyExpensesHeader}>
+          <Text style={styles.monthlyExpensesTitle}>
+            {months[selectedMonth]} {selectedYear} Expenses
+          </Text>
+        </View>
+
         {loading ? (
           <ActivityIndicator size="large" color="#007AFF" />
         ) : expenses.length === 0 ? (
@@ -343,6 +352,7 @@ export default function Expenses() {
           <FlatList
             data={expenses}
             keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 80 }}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -548,6 +558,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     paddingTop: 60,
+    paddingBottom: 0,
   },
   header: {
     flexDirection: "row",
@@ -658,6 +669,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     alignItems: "center",
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   totalLabel: {
     fontSize: 16,
@@ -862,5 +878,17 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     flex: 1,
+  },
+  monthlyExpensesTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Colors.black,
+    marginBottom: 12,
+    marginLeft: 4,
+    flexWrap: 'wrap',
+  },
+  monthlyExpensesHeader: {
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
 });

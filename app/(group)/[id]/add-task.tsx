@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Image,
+  Modal,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import {
@@ -117,7 +119,7 @@ export default function AddGroupTask() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Task</Text>
         <TouchableOpacity 
-          style={styles.doneButton}
+          style={styles.submitButton}
           onPress={handleSubmit}
           disabled={isSubmitting}
         >
@@ -265,8 +267,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#007AFF",
   },
-  doneButton: {
-    padding: 8,
+  submitButton: {
+    backgroundColor: "#007AFF",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: -10,
+    marginBottom: 20,
   },
   doneButtonText: {
     color: '#34C759',  // iOS green color

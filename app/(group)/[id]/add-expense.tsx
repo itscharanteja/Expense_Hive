@@ -125,7 +125,7 @@ export default function AddGroupExpense() {
         mediaTypes: "images" as ImagePicker.MediaType,
         quality: 0.8,
         allowsEditing: true,
-        aspect: [4, 3],
+        aspect: [1, 2],
       });
 
       if (!result.canceled && result.assets[0].uri) {
@@ -250,7 +250,7 @@ export default function AddGroupExpense() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.mainContainer}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
@@ -259,120 +259,138 @@ export default function AddGroupExpense() {
         <View style={{ width: 24 }} />
       </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Amount"
-        value={amount}
-        onChangeText={setAmount}
-        keyboardType="decimal-pad"
-      />
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <TextInput
+          style={styles.input}
+          placeholder="Amount"
+          value={amount}
+          onChangeText={setAmount}
+          keyboardType="decimal-pad"
+        />
 
-      <TextInput
-        style={[styles.input, styles.descriptionInput]}
-        placeholder="Description"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-      />
+        <TextInput
+          style={[styles.input, styles.descriptionInput]}
+          placeholder="Description"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+        />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Split Between</Text>
-        {members.map((member) => (
-          <TouchableOpacity
-            key={member.email}
-            style={[
-              styles.memberItem,
-              member.selected && styles.memberItemSelected,
-            ]}
-            onPress={() => toggleMemberSelection(member.email)}
-          >
-            <Text
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Split Between</Text>
+          {members.map((member) => (
+            <TouchableOpacity
+              key={member.email}
               style={[
-                styles.memberUsername,
-                member.selected && styles.memberUsernameSelected,
+                styles.memberItem,
+                member.selected && styles.memberItemSelected,
               ]}
+              onPress={() => toggleMemberSelection(member.email)}
             >
-              @{member.username}
-            </Text>
-            <Ionicons
-              name={member.selected ? "checkmark-circle" : "ellipse-outline"}
-              size={24}
-              color={member.selected ? "#007AFF" : "#666"}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.receiptSection}>
-        <Text style={styles.receiptTitle}>Attach Receipt</Text>
-        <View style={styles.receiptButtons}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.cameraButtonStyle]}
-            onPress={takePhoto}
-            disabled={uploadingImage}
-          >
-            <Ionicons name="camera" size={24} color="white" />
-            <Text style={styles.actionButtonText}>Take Photo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionButton, styles.galleryButtonStyle]}
-            onPress={pickImage}
-            disabled={uploadingImage}
-          >
-            <Ionicons name="images" size={24} color="white" />
-            <Text style={styles.actionButtonText}>Choose Photo</Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.memberUsername,
+                  member.selected && styles.memberUsernameSelected,
+                ]}
+              >
+                @{member.username}
+              </Text>
+              <Ionicons
+                name={member.selected ? "checkmark-circle" : "ellipse-outline"}
+                size={24}
+                color={member.selected ? "#007AFF" : "#666"}
+              />
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {uploadingImage && (
-          <Text style={styles.uploadingText}>Uploading receipt...</Text>
-        )}
-
-        {localReceiptUri && (
-          <View style={styles.previewContainer}>
-            <Image
-              source={{ uri: localReceiptUri }}
-              style={styles.previewImage}
-              resizeMode="contain"
-            />
+        <View style={styles.receiptSection}>
+          <Text style={styles.receiptTitle}>Attach Receipt</Text>
+          <View style={styles.receiptButtons}>
             <TouchableOpacity
-              style={styles.removeButtonContainer}
-              onPress={() => setLocalReceiptUri(null)}
+              style={[styles.actionButton, styles.cameraButtonStyle]}
+              onPress={takePhoto}
+              disabled={uploadingImage}
             >
-              <Text style={styles.removeButtonText}>Remove Receipt</Text>
+              <Ionicons name="camera" size={24} color="white" />
+              <Text style={styles.actionButtonText}>Take Photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.galleryButtonStyle]}
+              onPress={pickImage}
+              disabled={uploadingImage}
+            >
+              <Ionicons name="images" size={24} color="white" />
+              <Text style={styles.actionButtonText}>Choose Photo</Text>
             </TouchableOpacity>
           </View>
-        )}
-      </View>
 
-      <TouchableOpacity
-        style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={isSubmitting}
-      >
-        <Text style={styles.buttonText}>
-          {isSubmitting ? "Adding..." : "Add Expense"}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+          {uploadingImage && (
+            <Text style={styles.uploadingText}>Uploading receipt...</Text>
+          )}
+
+          {localReceiptUri && (
+            <View style={styles.previewContainer}>
+              <Image
+                source={{ uri: localReceiptUri }}
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+              <TouchableOpacity
+                style={styles.removeButtonContainer}
+                onPress={() => setLocalReceiptUri(null)}
+              >
+                <Text style={styles.removeButtonText}>Remove Receipt</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.buttonText}>
+            {isSubmitting ? "Adding..." : "Add Expense"}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    padding: 20,
     backgroundColor: "#ffffff",
+    paddingTop: 20,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingTop: 24,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     backgroundColor: "#fff",
+    zIndex: 1,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingTop: 20,
+    paddingBottom: 120,
   },
   backButton: {
     padding: 8,

@@ -871,10 +871,10 @@ export default function GroupDetails() {
     <GradientBackground>
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#007AFF" />
           </TouchableOpacity>
-          <Text style={styles.title}>{group?.name}</Text>
+          <Text style={styles.groupName}>{group?.name}</Text>
           {group?.createdBy === user?.email && (
             <TouchableOpacity
               onPress={handleDeleteGroup}
@@ -1126,15 +1126,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 0,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    paddingTop: 20,
+    position: 'relative',
   },
   backButton: {
     padding: 8,
+    width: 40,
+    zIndex: 1,
   },
-  title: {
-    fontSize: 20,
+  groupName: {
+    fontSize: 24,
     fontWeight: "bold",
+    color: Colors.black,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    marginHorizontal: 10,
+  },
+  deleteButton: {
+    padding: 8,
+    width: 40,
+    zIndex: 1,
   },
   scrollContainer: {
     flex: 1,
@@ -1314,9 +1327,9 @@ const styles = StyleSheet.create({
   },
   totalExpenseContainer: {
     backgroundColor: "#f8f8f8",
-    padding: 20,
+    padding: 16,
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 16,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -1325,12 +1338,12 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   totalExpenseLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#666",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   totalExpenseAmount: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     color: Colors.primary,
   },
@@ -1399,10 +1412,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
     marginTop: 20,
-  },
-  deleteButton: {
-    padding: 8,
-    color: Colors.secondary,
   },
   picker: {
     borderWidth: 1,
