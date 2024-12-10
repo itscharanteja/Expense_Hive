@@ -330,9 +330,9 @@ export default function Expenses() {
           </Text>
         </View>
 
-        <Text style={styles.monthlyExpensesTitle}>
+        {/* <Text style={styles.monthlyExpensesTitle}>
           {months[selectedMonth]} Expenses
-        </Text>
+        </Text> */}
         <View style={styles.monthlyExpensesHeader}>
           <Text style={styles.monthlyExpensesTitle}>
             {months[selectedMonth]} {selectedYear} Expenses
@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
     color: Colors.black,
     marginBottom: 12,
     marginLeft: 4,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   monthlyExpensesHeader: {
     marginBottom: 16,

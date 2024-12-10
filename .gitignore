@@ -4,8 +4,15 @@
 node_modules/
 .env
 
-# Expo
-.expo/
+
+# OS generated files
+.DS_Store
+
+# IDE specific files
+.vscode/
+.idea/
+
+# build files
 dist/
 web-build/
 expo-env.d.ts
@@ -17,6 +24,18 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+
+#aab
+*.aab
+
+# React Native
+ios/
+android/
+
+
+# Build directories
+build/
+dist/
 
 # Metro
 .metro-health-check*
