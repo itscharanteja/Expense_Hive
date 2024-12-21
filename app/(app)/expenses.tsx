@@ -9,15 +9,13 @@ import {
   RefreshControl,
   Alert,
   Modal,
-  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, router } from "expo-router";
+import { Link } from "expo-router";
 import {
   collection,
   query,
   where,
-  onSnapshot,
   orderBy,
   getDocs,
   doc as firestoreDoc,
@@ -27,7 +25,6 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
-import { Picker } from "@react-native-picker/picker";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -41,11 +38,6 @@ type Expense = {
   isGroup?: boolean;
   groupName?: string;
   shareAmount?: number;
-};
-
-type CalendarDay = {
-  date: number;
-  isCurrentMonth: boolean;
 };
 
 export default function Expenses() {
@@ -329,10 +321,6 @@ export default function Expenses() {
             {getTotalExpenses().toFixed(2)} kr
           </Text>
         </View>
-
-        {/* <Text style={styles.monthlyExpensesTitle}>
-          {months[selectedMonth]} Expenses
-        </Text> */}
         <View style={styles.monthlyExpensesHeader}>
           <Text style={styles.monthlyExpensesTitle}>
             {months[selectedMonth]} {selectedYear} Expenses
@@ -380,7 +368,7 @@ export default function Expenses() {
                         {item.description}
                       </Text>
                       <Text style={styles.shareAmount}>
-                        Your share: ${item.shareAmount?.toFixed(2)}
+                        Your share: {item.shareAmount?.toFixed(2)} kr
                       </Text>
                     </>
                   ) : (
@@ -597,14 +585,15 @@ const styles = StyleSheet.create({
   },
   expenseItem: {
     backgroundColor: Colors.white,
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     marginBottom: 12,
+    marginHorizontal: 4,
     shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   expenseCategory: {
     fontSize: 16,

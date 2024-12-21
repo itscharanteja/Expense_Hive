@@ -14,10 +14,9 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../constants/Colors";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-
 
 const categories = [
   "Food & Drinks",
@@ -103,7 +102,7 @@ export default function AddExpense() {
 
     try {
       setIsSubmitting(true);
-      
+
       const expenseData = {
         amount: Number(amount),
         category,
@@ -115,12 +114,12 @@ export default function AddExpense() {
 
       await addDoc(collection(db, "expenses"), expenseData);
       Alert.alert("Success", "Expense added successfully");
-      
+
       setAmount("");
       setCategory("");
       setDescription("");
       setSelectedDate(new Date());
-      
+
       router.back();
     } catch (error) {
       console.error("Error adding expense:", error);
@@ -133,10 +132,10 @@ export default function AddExpense() {
   return (
     <LinearGradient
       colors={[
-        '#F0F7FF',    // Soft sky blue
-        '#F5FAFF',    // Lighter sky blue
-        '#F8FCFF',    // Very light blue
-        '#FFFFFF',    // White
+        Colors.primary + "40", // Primary color with opacity
+        Colors.primary + "15",
+        Colors.primary + "08",
+        Colors.accent + "05",
       ]}
       locations={[0, 0.3, 0.6, 1]}
       start={{ x: 0.5, y: 0 }}
@@ -144,14 +143,14 @@ export default function AddExpense() {
       style={styles.gradientBackground}
     >
       <View style={styles.mainContainer}>
-        <ScrollView 
+        <ScrollView
           style={styles.container}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
             <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#007AFF" />
+              <Ionicons name="arrow-back" size={24} color={Colors.accent} />
             </TouchableOpacity>
             <Text style={styles.title}>Add Expense</Text>
           </View>
@@ -164,18 +163,14 @@ export default function AddExpense() {
             keyboardType="decimal-pad"
           />
 
-
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={showDatePicker}
-          >
+          <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
             <View style={styles.dateButtonContent}>
-              <Ionicons name="calendar-outline" size={20} color="#666" />
+              <Ionicons name="calendar-outline" size={20} color={Colors.text} />
               <Text style={styles.dateButtonText}>
                 {selectedDate.toLocaleDateString()}
               </Text>
             </View>
-            <Ionicons name="chevron-down" size={20} color="#666" />
+            <Ionicons name="chevron-down" size={20} color={Colors.text} />
           </TouchableOpacity>
 
           <DateTimePickerModal
@@ -187,7 +182,6 @@ export default function AddExpense() {
             maximumDate={new Date()}
           />
 
-
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={category}
@@ -195,17 +189,13 @@ export default function AddExpense() {
               style={styles.picker}
               itemStyle={{ fontSize: 16, height: 60 }}
             >
-              <Picker.Item 
-                label="Select Category" 
-                value="" 
-                style={{ color: '#666' }} 
+              <Picker.Item
+                label="Select Category"
+                value=""
+                style={{ color: Colors.text }}
               />
               {categories.map((cat) => (
-                <Picker.Item 
-                  key={cat} 
-                  label={cat} 
-                  value={cat}
-                />
+                <Picker.Item key={cat} label={cat} value={cat} />
               ))}
             </Picker>
           </View>
@@ -239,7 +229,7 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   container: {
     flex: 1,
@@ -257,15 +247,15 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingTop: 32,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: Colors.background,
     marginBottom: 16,
     paddingHorizontal: 0,
-    position: 'relative',
+    position: "relative",
   },
   backButton: {
     padding: 8,
     width: 40,
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     zIndex: 1,
   },
@@ -273,24 +263,26 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginTop: 8,
-    textAlign: 'center',
+    textAlign: "center",
     marginLeft: 0,
+    color: Colors.black,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: Colors.background,
     padding: 15,
     borderRadius: 8,
     marginBottom: 15,
     fontSize: 16,
+    backgroundColor: Colors.white,
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: Colors.background,
     borderRadius: 8,
     marginBottom: 15,
     overflow: "hidden",
-    backgroundColor: '#f8f8f8',
+    backgroundColor: Colors.white,
   },
   picker: {
     height: 60,
@@ -301,44 +293,39 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: "top",
   },
+  dateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: Colors.background,
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+    backgroundColor: Colors.white,
+  },
+  dateButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: Colors.black,
+  },
   submitButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
     marginTop: 20,
-    shadowColor: "#007AFF",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: "white",
+    color: Colors.white,
     fontSize: 16,
     fontWeight: "600",
-  },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 15,
-    backgroundColor: '#f8f8f8',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  dateButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  dateButtonText: {
-    fontSize: 16,
-    color: '#333',
   },
 });

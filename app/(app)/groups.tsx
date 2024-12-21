@@ -25,13 +25,9 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-// import {
-//   sendGroupAdditionNotification,
-//   testGroupNotification,
-// } from "../../services/NotificationService";
 import { sendPushNotification } from "../../scripts/sendTestNotification";
 import { Colors } from "../constants/Colors";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 
 type Group = {
   id: string;
@@ -198,7 +194,7 @@ export default function Groups() {
 
   return (
     <LinearGradient
-      colors={[Colors.primary + '30', Colors.accent + '10']}
+      colors={[Colors.primary + "30", Colors.accent + "10"]}
       style={styles.gradientBackground}
     >
       <View style={styles.container}>
@@ -322,57 +318,67 @@ export default function Groups() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 40,
+    paddingTop: 60,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
+    color: "#1a1a1a",
   },
   addButton: {
     backgroundColor: Colors.primary,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: Colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   list: {
-    padding: 16,
+    padding: 20,
   },
   groupItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    padding: 20,
     backgroundColor: "white",
-    borderRadius: 12,
-    marginBottom: 12,
-    marginHorizontal: 4,
+    borderRadius: 16,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 5,
   },
   groupName: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
-    paddingRight: 8,
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 6,
+    color: "#1a1a1a",
+    paddingRight: 12,
   },
   memberCount: {
-    fontSize: 14,
+    fontSize: 15,
     color: "#666",
     paddingRight: 8,
   },
@@ -384,99 +390,107 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   closeButton: {
     padding: 8,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "bold",
+    color: "#1a1a1a",
   },
   formContainer: {
-    padding: 20,
-    gap: 15,
+    padding: 24,
+    gap: 20,
   },
   memberInputContainer: {
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    padding: 15,
-    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.1)",
+    padding: 16,
+    borderRadius: 12,
     fontSize: 16,
+    backgroundColor: "white",
   },
   addMemberButton: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 12,
     justifyContent: "center",
+    shadowColor: Colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
   },
   membersContainer: {
-    gap: 8,
+    gap: 10,
   },
   memberChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f0f0",
-    padding: 10,
-    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    padding: 12,
+    borderRadius: 24,
   },
   memberEmail: {
     flex: 1,
     marginRight: 8,
+    fontSize: 15,
+    color: "#1a1a1a",
   },
   removeButton: {
-    padding: 4,
+    padding: 6,
   },
   createButton: {
     backgroundColor: Colors.primary,
-    padding: 15,
-    borderRadius: 8,
+    padding: 18,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 16,
+    shadowColor: Colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
   },
   buttonText: {
     color: "white",
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "600",
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   emptyState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 40,
+    paddingTop: 60,
   },
   emptyStateText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
-    color: "#666",
-    marginBottom: 8,
+    color: "#1a1a1a",
+    marginBottom: 10,
   },
   emptyStateSubtext: {
-    fontSize: 14,
-    color: "#999",
-  },
-  testButton: {
-    backgroundColor: "#007AFF",
-    padding: 10,
-    borderRadius: 8,
-    marginRight: 10,
-  },
-  testButtonText: {
-    color: "white",
     fontSize: 16,
-    fontWeight: "600",
-  },
-  unreadDot: {
-    backgroundColor: Colors.secondary,
+    color: "#666",
+    textAlign: "center",
+    paddingHorizontal: 40,
   },
   gradientBackground: {
     flex: 1,

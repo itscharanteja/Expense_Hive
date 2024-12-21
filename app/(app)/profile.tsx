@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Colors } from "../constants/Colors";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../config/firebase";
-import { collection, query, where, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 type UserProfile = {
   email: string;
@@ -73,26 +73,29 @@ export default function Profile() {
     );
 
     // Listen to personal expenses
-    const unsubscribePersonal = onSnapshot(personalExpensesQuery, (snapshot) => {
-      const personalTotal = snapshot.docs.reduce(
-        (sum, doc) => sum + doc.data().amount,
-        0
-      );
-      setSpendingSummary(prev => ({
-        ...prev,
-        personalTotal
-      }));
-    });
+    const unsubscribePersonal = onSnapshot(
+      personalExpensesQuery,
+      (snapshot) => {
+        const personalTotal = snapshot.docs.reduce(
+          (sum, doc) => sum + doc.data().amount,
+          0
+        );
+        setSpendingSummary((prev) => ({
+          ...prev,
+          personalTotal,
+        }));
+      }
+    );
 
     // Listen to group expenses
     const unsubscribeGroup = onSnapshot(groupExpensesQuery, (snapshot) => {
       const groupTotal = snapshot.docs.reduce((sum, doc) => {
         const data = doc.data();
-        return sum + (data.amount / data.splitBetween.length);
+        return sum + data.amount / data.splitBetween.length;
       }, 0);
-      setSpendingSummary(prev => ({
+      setSpendingSummary((prev) => ({
         ...prev,
-        groupTotal
+        groupTotal,
       }));
     });
 
@@ -147,7 +150,10 @@ export default function Profile() {
               );
             } catch (error: any) {
               console.error("Error sending reset email:", error);
-              Alert.alert("Error", "Failed to send reset email. Please try again.");
+              Alert.alert(
+                "Error",
+                "Failed to send reset email. Please try again."
+              );
             }
           },
         },
@@ -197,7 +203,10 @@ export default function Profile() {
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalAmount}>
-              {(spendingSummary.personalTotal + spendingSummary.groupTotal).toFixed(2)} kr
+              {(
+                spendingSummary.personalTotal + spendingSummary.groupTotal
+              ).toFixed(2)}{" "}
+              kr
             </Text>
           </View>
         </View>
@@ -223,8 +232,8 @@ export default function Profile() {
       </View>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.resetPasswordButton} 
+        <TouchableOpacity
+          style={styles.resetPasswordButton}
           onPress={handleResetPassword}
         >
           <Ionicons name="key-outline" size={20} color={Colors.primary} />
@@ -302,7 +311,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   buttonContainer: {
-    marginTop: 'auto',
+    marginTop: "auto",
     marginBottom: 40,
     marginHorizontal: 20,
     gap: 12,

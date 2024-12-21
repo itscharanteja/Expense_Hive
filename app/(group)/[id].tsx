@@ -5,14 +5,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
   ActivityIndicator,
   Alert,
   Modal,
   TextInput,
-  ScrollView,
-  Platform,
-  SafeAreaView,
   SectionList,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -29,7 +25,6 @@ import {
   updateDoc,
   getDocs,
   arrayUnion,
-  arrayRemove,
   deleteDoc,
   orderBy,
   writeBatch,
@@ -258,6 +253,7 @@ export default function GroupDetails() {
                     `Reminder: ${reminder.title} is due in 30 minutes`,
                     userData.expoPushToken
                   );
+                  // console.log("Sent reminder notification to:", memberEmail);
                 }
               }
             }
@@ -464,7 +460,48 @@ export default function GroupDetails() {
         completed: false,
       };
 
+      // Add reminder to database
       await addDoc(collection(db, "groupReminders"), reminderData);
+
+      // Send notifications to all group members
+      if (group?.members) {
+        for (const memberEmail of group.members) {
+          if (memberEmail !== user.email) {
+            // Get user's push token
+            const usersRef = collection(db, "users");
+            const userQuery = query(
+              usersRef,
+              where("email", "==", memberEmail)
+            );
+            const userSnapshot = await getDocs(userQuery);
+
+            if (!userSnapshot.empty) {
+              const userData = userSnapshot.docs[0].data();
+              if (userData.expoPushToken) {
+                await sendPushNotification(
+                  `New reminder in ${group.name}: ${reminderData.title}`,
+                  userData.expoPushToken
+                );
+              }
+            }
+
+            // Create notification in database
+            await addDoc(collection(db, "notifications"), {
+              type: "GROUP_REMINDER",
+              groupId: id,
+              groupName: group.name,
+              title: reminderData.title,
+              dueDate: reminderData.dueDate,
+              createdBy: user.email,
+              createdByUsername: userData?.username,
+              recipientEmail: memberEmail,
+              createdAt: Timestamp.now(),
+              read: false,
+            });
+          }
+        }
+      }
+
       setReminderModalVisible(false);
       setNewReminder("");
       setSelectedDate(new Date());
@@ -871,7 +908,10 @@ export default function GroupDetails() {
     <GradientBackground>
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <Ionicons name="arrow-back" size={24} color="#007AFF" />
           </TouchableOpacity>
           <Text style={styles.groupName}>{group?.name}</Text>
@@ -1127,7 +1167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 16,
     paddingTop: 20,
-    position: 'relative',
+    position: "relative",
   },
   backButton: {
     padding: 8,
@@ -1138,10 +1178,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: Colors.black,
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
-    textAlign: 'center',
+    textAlign: "center",
     marginHorizontal: 10,
   },
   deleteButton: {

@@ -22,9 +22,6 @@ export default function RootLayout() {
           console.log("Saving token to Firestore...");
           await savePushToken(token);
           console.log("Token saved successfully");
-
-          // Test notification
-          await testLocalNotification();
         }
 
         const notificationListener = addNotificationListener(

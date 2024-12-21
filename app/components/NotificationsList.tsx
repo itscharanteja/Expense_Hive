@@ -26,7 +26,12 @@ import { Colors } from "../constants/Colors";
 
 type Notification = {
   id: string;
-  type: "GROUP_ADDITION" | "GROUP_DELETION" | "GROUP_EXPENSE" | "TASK_ASSIGNED";
+  type:
+    | "GROUP_ADDITION"
+    | "GROUP_DELETION"
+    | "GROUP_EXPENSE"
+    | "TASK_ASSIGNED"
+    | "GROUP_REMINDER";
   groupId: string;
   groupName: string;
   addedBy?: string;
@@ -37,6 +42,7 @@ type Notification = {
   amount?: number;
   description?: string;
   title?: string;
+  dueDate?: FirebaseFirestore.Timestamp;
   createdAt: FirebaseFirestore.Timestamp;
   read: boolean;
   readAt?: FirebaseFirestore.Timestamp;
@@ -59,6 +65,10 @@ const NotificationItem = ({
         return `New expense: ${item.amount}kr - ${item.description}`;
       case "TASK_ASSIGNED":
         return `New task assigned: ${item.title}`;
+      case "GROUP_REMINDER":
+        return `New reminder in ${item.groupName}: ${
+          item.title
+        } (Due: ${item.dueDate?.toDate().toLocaleString()})`;
       default:
         return item.type;
     }

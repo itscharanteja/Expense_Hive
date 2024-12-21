@@ -9,7 +9,16 @@ import {
 } from "react-native";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
-import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, orderBy, limit, Timestamp, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  doc as firestoreDoc,
+  getDoc,
+  orderBy,
+  Timestamp,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "../config/firebase";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
@@ -37,10 +46,10 @@ type RecentExpense = {
 const getMonthDateRange = () => {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  start.setHours(0, 0, 0, 0);  // Start of first day
-  
+  start.setHours(0, 0, 0, 0); // Start of first day
+
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  end.setHours(23, 59, 59, 999);  // End of last day
+  end.setHours(23, 59, 59, 999); // End of last day
   return { start, end };
 };
 
@@ -56,7 +65,7 @@ export default function Home() {
   });
   const [groupExpenseState, setGroupExpenseState] = useState({
     total: 0,
-    expenses: [] as RecentExpense[]
+    expenses: [] as RecentExpense[],
   });
 
   const fetchSummary = () => {
@@ -64,7 +73,6 @@ export default function Home() {
 
     const { start, end } = getMonthDateRange();
 
-    // Personal expenses query
     const personalExpensesQuery = query(
       collection(db, "expenses"),
       where("userId", "==", user.uid),
@@ -73,7 +81,6 @@ export default function Home() {
       orderBy("date", "desc")
     );
 
-    // Group expenses query
     const groupExpensesQuery = query(
       collection(db, "groupExpenses"),
       where("splitBetween", "array-contains", user.email),
@@ -82,87 +89,93 @@ export default function Home() {
       orderBy("date", "desc")
     );
 
-    // Personal expenses listener
-    const unsubscribePersonal = onSnapshot(personalExpensesQuery, (snapshot) => {
-      const personalTotal = snapshot.docs.reduce(
-        (sum, doc) => sum + (doc.data().amount || 0),
-        0
-      );
+    const unsubscribePersonal = onSnapshot(
+      personalExpensesQuery,
+      (snapshot) => {
+        const personalTotal = snapshot.docs.reduce(
+          (sum, doc) => sum + (doc.data().amount || 0),
+          0
+        );
 
-      const personalExpenses = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          amount: data.amount || 0,
-          description: data.description || '',
-          date: data.date.toDate(),
-          timestamp: data.timestamp?.toDate() || data.date.toDate(),
-          isGroup: false,
-        };
-      });
+        const personalExpenses = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            amount: data.amount || 0,
+            description: data.description || "",
+            date: data.date.toDate(),
+            timestamp: data.timestamp?.toDate() || data.date.toDate(),
+            isGroup: false,
+          };
+        });
 
-      setSummary(prev => ({
-        ...prev,
-        totalPersonal: personalTotal || 0,
-        recentExpenses: [
-          ...personalExpenses,
-          ...groupExpenseState.expenses
-        ]
-          .sort((a, b) => {
-            const timeA = a.timestamp?.getTime() || Date.now();
-            const timeB = b.timestamp?.getTime() || Date.now();
-            return timeB - timeA;
-          })
-          .slice(0, 5)
-      }));
-    });
+        setSummary((prev) => ({
+          ...prev,
+          totalPersonal: personalTotal || 0,
+          recentExpenses: [...personalExpenses, ...groupExpenseState.expenses]
+            .sort((a, b) => {
+              const timeA = a.timestamp?.getTime() || Date.now();
+              const timeB = b.timestamp?.getTime() || Date.now();
+              return timeB - timeA;
+            })
+            .slice(0, 5),
+        }));
+      }
+    );
 
     // Group expenses listener
-    const unsubscribeGroup = onSnapshot(groupExpensesQuery, async (snapshot) => {
-      let groupTotal = 0;
-      const groupExpenses: RecentExpense[] = [];
+    const unsubscribeGroup = onSnapshot(
+      groupExpensesQuery,
+      async (snapshot) => {
+        let groupTotal = 0;
+        const groupExpenses: RecentExpense[] = [];
 
-      for (const doc of snapshot.docs) {
-        const data = doc.data();
-        const shareAmount = data.amount / data.splitBetween.length;
-        groupTotal += shareAmount;
+        for (const doc of snapshot.docs) {
+          const data = doc.data();
+          const shareAmount = data.amount / data.splitBetween.length;
+          groupTotal += shareAmount;
 
-        const groupDoc = await getDoc(firestoreDoc(db, "groups", data.groupId));
-        const groupName = groupDoc.exists() ? groupDoc.data().name : "Unknown Group";
+          const groupDoc = await getDoc(
+            firestoreDoc(db, "groups", data.groupId)
+          );
+          const groupName = groupDoc.exists()
+            ? groupDoc.data().name
+            : "Unknown Group";
 
-        groupExpenses.push({
-          id: doc.id,
-          amount: data.amount,
-          description: data.description,
-          date: data.date.toDate(),
-          timestamp: data.timestamp?.toDate() || data.date.toDate(),
-          isGroup: true,
-          groupName,
-          shareAmount,
-          groupId: data.groupId,
+          groupExpenses.push({
+            id: doc.id,
+            amount: data.amount,
+            description: data.description,
+            date: data.date.toDate(),
+            timestamp: data.timestamp?.toDate() || data.date.toDate(),
+            isGroup: true,
+            groupName,
+            shareAmount,
+            groupId: data.groupId,
+          });
+        }
+
+        setGroupExpenseState({
+          total: groupTotal,
+          expenses: groupExpenses,
         });
+
+        setSummary((prev) => ({
+          ...prev,
+          totalGroupShare: groupTotal,
+          recentExpenses: [
+            ...prev.recentExpenses.filter((exp) => !exp.isGroup),
+            ...groupExpenses,
+          ]
+            .sort((a, b) => {
+              const timeA = a.timestamp?.getTime() || Date.now();
+              const timeB = b.timestamp?.getTime() || Date.now();
+              return timeB - timeA;
+            })
+            .slice(0, 5),
+        }));
       }
-
-      setGroupExpenseState({
-        total: groupTotal,
-        expenses: groupExpenses
-      });
-
-      setSummary(prev => ({
-        ...prev,
-        totalGroupShare: groupTotal,
-        recentExpenses: [
-          ...prev.recentExpenses.filter(exp => !exp.isGroup),
-          ...groupExpenses
-        ]
-          .sort((a, b) => {
-            const timeA = a.timestamp?.getTime() || Date.now();
-            const timeB = b.timestamp?.getTime() || Date.now();
-            return timeB - timeA;
-          })
-          .slice(0, 5)
-      }));
-    });
+    );
 
     return () => {
       unsubscribePersonal();
@@ -192,38 +205,39 @@ export default function Home() {
       next: (snapshot) => {
         // Handle added or modified expenses
         const changes = snapshot.docChanges();
-        const personalExpenses = snapshot.docs.map(doc => {
+        const personalExpenses = snapshot.docs.map((doc) => {
           const data = doc.data();
           return {
             id: doc.id,
             amount: data.amount || 0,
-            description: data.description || '',
+            description: data.description || "",
             date: data.date.toDate(),
             timestamp: data.timestamp?.toDate() || data.date.toDate(),
             isGroup: false,
           };
         });
 
-        setSummary(prev => {
+        setSummary((prev) => {
           const updatedExpenses = [
             ...personalExpenses,
-            ...prev.recentExpenses.filter(exp => exp.isGroup)
-          ].sort((a, b) => {
-            const timeA = a.timestamp?.getTime() || Date.now();
-            const timeB = b.timestamp?.getTime() || Date.now();
-            return timeB - timeA;
-          })
-           .slice(0, 5);
+            ...prev.recentExpenses.filter((exp) => exp.isGroup),
+          ]
+            .sort((a, b) => {
+              const timeA = a.timestamp?.getTime() || Date.now();
+              const timeB = b.timestamp?.getTime() || Date.now();
+              return timeB - timeA;
+            })
+            .slice(0, 5);
 
           return {
             ...prev,
-            recentExpenses: updatedExpenses
+            recentExpenses: updatedExpenses,
           };
         });
       },
       error: (error) => {
         console.error("Error in personal expenses listener:", error);
-      }
+      },
     });
 
     // Listen to group expenses with changes
@@ -235,8 +249,12 @@ export default function Home() {
           const data = doc.data();
           const shareAmount = data.amount / data.splitBetween.length;
 
-          const groupDoc = await getDoc(firestoreDoc(db, "groups", data.groupId));
-          const groupName = groupDoc.exists() ? groupDoc.data().name : "Unknown Group";
+          const groupDoc = await getDoc(
+            firestoreDoc(db, "groups", data.groupId)
+          );
+          const groupName = groupDoc.exists()
+            ? groupDoc.data().name
+            : "Unknown Group";
 
           groupExpenses.push({
             id: doc.id,
@@ -251,26 +269,27 @@ export default function Home() {
           });
         }
 
-        setSummary(prev => {
+        setSummary((prev) => {
           const updatedExpenses = [
-            ...prev.recentExpenses.filter(exp => !exp.isGroup),
-            ...groupExpenses
-          ].sort((a, b) => {
-            const timeA = a.timestamp?.getTime() || Date.now();
-            const timeB = b.timestamp?.getTime() || Date.now();
-            return timeB - timeA;
-          })
-           .slice(0, 5);
+            ...prev.recentExpenses.filter((exp) => !exp.isGroup),
+            ...groupExpenses,
+          ]
+            .sort((a, b) => {
+              const timeA = a.timestamp?.getTime() || Date.now();
+              const timeB = b.timestamp?.getTime() || Date.now();
+              return timeB - timeA;
+            })
+            .slice(0, 5);
 
           return {
             ...prev,
-            recentExpenses: updatedExpenses
+            recentExpenses: updatedExpenses,
           };
         });
       },
       error: (error) => {
         console.error("Error in group expenses listener:", error);
-      }
+      },
     });
 
     return () => {
@@ -291,6 +310,11 @@ export default function Home() {
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     fetchSummary();
+    fetchRecentExpenses();
+    // Set refreshing to false after a short delay to ensure data is loaded
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   }, []);
 
   const renderRecentExpense = ({ item }: { item: RecentExpense }) => (
@@ -299,9 +323,9 @@ export default function Home() {
         <Text style={styles.expenseDescription}>{item.description}</Text>
         <Text style={styles.expenseDate}>
           {item.date.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
+            year: "numeric",
+            month: "short",
+            day: "numeric",
           })}
         </Text>
         {item.isGroup && (
@@ -314,11 +338,9 @@ export default function Home() {
         )}
       </View>
       <View style={styles.expenseAmount}>
-        <Text style={[
-          styles.amount,
-          item.isGroup && styles.groupAmount
-        ]}>
-          {item.isGroup ? item.shareAmount?.toFixed(2) : item.amount.toFixed(2)} kr
+        <Text style={[styles.amount, item.isGroup && styles.groupAmount]}>
+          {item.isGroup ? item.shareAmount?.toFixed(2) : item.amount.toFixed(2)}{" "}
+          kr
         </Text>
         {item.isGroup && <Text style={styles.groupTag}>Group</Text>}
       </View>
@@ -339,14 +361,12 @@ export default function Home() {
         end={{ x: 0, y: 1 }}
         style={styles.gradientBackground}
       />
-      
+
       <View style={styles.headerSection}>
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeText}>Welcome back!</Text>
           <Text style={styles.username}>
-            @{userData?.username 
-              ? userData.username.charAt(0).toUpperCase() + userData.username.slice(1) 
-              : 'User'}
+            @{userData?.username ? userData.username : "User"}
           </Text>
         </View>
 
@@ -382,7 +402,9 @@ export default function Home() {
         style={styles.expensesList}
         data={summary.recentExpenses}
         renderItem={renderRecentExpense}
-        keyExtractor={(item) => `${item.isGroup ? 'group' : 'personal'}_${item.id}`}  // Use composite key
+        keyExtractor={(item) =>
+          `${item.isGroup ? "group" : "personal"}_${item.id}`
+        } // Use composite key
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -399,7 +421,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    // backgroundColor: "#fff",
   },
   gradientBackground: {
     position: "absolute",
@@ -409,85 +431,96 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   headerSection: {
-    padding: 20,
+    padding: 24,
     paddingTop: 60,
-    paddingBottom: 0,
+    paddingBottom: 16,
   },
   welcomeSection: {
-    marginBottom: 24,
+    marginBottom: 32,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
     color: Colors.black,
+    marginBottom: 8,
   },
   username: {
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.text,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   summaryContainer: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
+    gap: 12,
+    marginBottom: 24,
   },
   summaryCard: {
     flex: 1,
     backgroundColor: Colors.white,
-    padding: 16,
-    marginHorizontal: 4,
-    borderRadius: 12,
+    padding: 20,
+    borderRadius: 16,
     alignItems: "center",
     shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   summaryTitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.text,
-    marginVertical: 8,
+    marginVertical: 12,
+    textAlign: "center",
   },
   summaryAmount: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
     color: Colors.primary,
   },
   totalContainer: {
     backgroundColor: Colors.white,
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 24,
     alignItems: "center",
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   totalLabel: {
     fontSize: 16,
     color: Colors.text,
-    marginBottom: 5,
+    marginBottom: 8,
   },
   totalAmount: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
     color: Colors.primary,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontWeight: "600",
+    color: Colors.black,
+    marginBottom: 16,
+  },
+  expensesList: {
+    flex: 1,
+    paddingHorizontal: 24,
   },
   expenseItem: {
+    backgroundColor: Colors.white,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 16,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    marginBottom: 8,
     shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   expenseInfo: {
     flex: 1,
@@ -495,42 +528,42 @@ const styles = StyleSheet.create({
   },
   expenseDescription: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
     color: Colors.black,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   expenseDate: {
     fontSize: 14,
     color: Colors.text,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   groupInfo: {
-    marginTop: 4,
+    backgroundColor: `${Colors.primary}10`,
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 8,
   },
   groupTag: {
-    fontSize: 12,
-    color: Colors.accent,
-    fontWeight: "500",
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: "600",
   },
   shareAmount: {
-    fontSize: 12,
+    fontSize: 14,
     color: Colors.text,
-    marginTop: 2,
+    marginTop: 4,
   },
   expenseAmount: {
     alignItems: "flex-end",
+    justifyContent: "center",
   },
   amount: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: Colors.primary,
+    marginBottom: 4,
   },
   groupAmount: {
-    color: Colors.accent,
-  },
-  expensesList: {
-    flex: 1,
-    paddingHorizontal: 20,
-    marginTop: -4,
+    color: Colors.primary,
   },
 });

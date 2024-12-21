@@ -66,7 +66,10 @@ export default function AddExpense() {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContainer}>
+      <ScrollView
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollContainer}
+      >
         <Text style={styles.title}>Add Expense</Text>
 
         <TextInput
@@ -114,7 +117,7 @@ export default function AddExpense() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   scrollContent: {
     flex: 1,
