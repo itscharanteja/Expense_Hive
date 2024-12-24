@@ -786,58 +786,6 @@ export default function GroupDetails() {
     },
   ];
 
-  // Function to create notifications
-  const createNotification = async (
-    type: "TASK_ASSIGNED" | "GROUP_EXPENSE" | "GROUP_REMINDER",
-    data: {
-      recipientEmail: string;
-      title?: string;
-      amount?: number;
-      dueDate?: Date;
-      description?: string;
-    }
-  ) => {
-    try {
-      const notificationData = {
-        type,
-        groupId: id,
-        groupName: group?.name,
-        createdBy: user?.email,
-        createdByUsername: userData?.username,
-        createdAt: Timestamp.now(),
-        read: false,
-        ...data,
-      };
-
-      await addDoc(collection(db, "notifications"), notificationData);
-    } catch (error) {
-      console.error("Error creating notification:", error);
-    }
-  };
-
-  // Update expense creation to include notifications
-  const handleAddExpense = async (expenseData: any) => {
-    try {
-      const newExpense = await addDoc(collection(db, "groupExpenses"), {
-        ...expenseData,
-        groupId: id,
-      });
-
-      // Create notifications for all split members
-      for (const memberEmail of expenseData.splitBetween) {
-        if (memberEmail !== user?.email) {
-          await createNotification("GROUP_EXPENSE", {
-            recipientEmail: memberEmail,
-            amount: expenseData.amount,
-            description: expenseData.description,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error adding expense:", error);
-    }
-  };
-
   const onAddTaskPress = async () => {
     try {
       if (!user || !userData || !newTaskTitle || !selectedMember) {
@@ -1010,8 +958,7 @@ export default function GroupDetails() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
-                    styles.button,
-                    styles.addButton,
+                    styles.addModalButton,
                     addingMember && styles.buttonDisabled,
                   ]}
                   onPress={handleAddMember}
@@ -1020,6 +967,12 @@ export default function GroupDetails() {
                   <Text style={styles.buttonText}>
                     {addingMember ? "Adding..." : "Add Member"}
                   </Text>
+                  {/* <Ionicons
+                    name="person-add"
+                    size={24}
+                    color="red"
+                    style={styles.buttonText}
+                  /> */}
                 </TouchableOpacity>
               </View>
             </View>
@@ -1073,10 +1026,10 @@ export default function GroupDetails() {
                   <Text style={styles.buttonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.button, styles.addButton]}
+                  style={[styles.addModalButton]}
                   onPress={addReminder}
                 >
-                  <Ionicons name="add" size={24} color="white" />
+                  <Text style={styles.buttonText}>Add Reminder</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1140,7 +1093,7 @@ export default function GroupDetails() {
                   <Text style={styles.buttonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.button, styles.addButton]}
+                  style={[styles.addModalButton]}
                   onPress={onAddTaskPress}
                 >
                   <Text style={styles.buttonText}>Add Task</Text>
@@ -1217,6 +1170,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
+  },
+  addModalButton: {
+    backgroundColor: Colors.primary,
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    justifyContent: "center",
   },
   expenseItem: {
     flexDirection: "row",
