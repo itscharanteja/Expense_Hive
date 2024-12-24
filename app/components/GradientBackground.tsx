@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../constants/Colors";
 
-export const GradientBackground: React.FC<{ children: React.ReactNode }> = ({
+const GradientBackground: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   return (
@@ -28,3 +28,5 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+export default GradientBackground;

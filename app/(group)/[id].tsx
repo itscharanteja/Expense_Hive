@@ -35,7 +35,8 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Colors } from "../constants/Colors";
 import { sendPushNotification } from "../../scripts/sendTestNotification";
 import { Picker } from "@react-native-picker/picker";
-import { GradientBackground } from "../components/GradientBackground";
+import GradientBackground from "../components/GradientBackground";
+import { Swipeable } from "react-native-gesture-handler";
 
 type GroupExpense = {
   id: string;
@@ -229,19 +230,26 @@ export default function GroupDetails() {
     if (!user || !group) return;
 
     // Check reminders every minute
-    const reminderInterval = setInterval(() => {
-      reminders.forEach(async (reminder) => {
-        if (!reminder.completed) {
-          const timeUntilDue = reminder.dueDate.getTime() - Date.now();
-          const minutesUntilDue = timeUntilDue / (1000 * 60);
+    const notificationRemainders = new Map<string, boolean>();
 
-          // If reminder is due in 30 minutes
-          if (minutesUntilDue <= 30 && minutesUntilDue > 29) {
-            // Send notifications to all group members
-            for (const memberEmail of group.members) {
-              const usersRef = collection(db, "users");
+    const reminderInterval = setInterval(async () => {
+      for (const reminder of reminders) {
+        const timeUntilDue = reminder.dueDate.getTime() - Date.now();
+        const minutesUntilDue = Math.floor(timeUntilDue / (1000 * 60));
+
+        // Check if notification was already sent
+        if (
+          minutesUntilDue === 30 &&
+          (!notificationRemainders.has(reminder.id) ||
+            !notificationRemainders.get(reminder.id))
+        ) {
+          notificationRemainders.set(reminder.id, true); // Mark as notified
+
+          for (const memberEmail of group.members) {
+            try {
+              const userRef = collection(db, "users");
               const userQuery = query(
-                usersRef,
+                userRef,
                 where("email", "==", memberEmail)
               );
               const userSnapshot = await getDocs(userQuery);
@@ -253,13 +261,14 @@ export default function GroupDetails() {
                     `Reminder: ${reminder.title} is due in 30 minutes`,
                     userData.expoPushToken
                   );
-                  // console.log("Sent reminder notification to:", memberEmail);
                 }
               }
+            } catch (error) {
+              console.error("Error sending reminder notification:", error);
             }
           }
         }
-      });
+      }
     }, 60000); // Check every minute
 
     return () => clearInterval(reminderInterval);
@@ -535,6 +544,78 @@ export default function GroupDetails() {
   const handleConfirm = (date: Date) => {
     setSelectedDate(date);
     hideDatePicker();
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, "groupTasks", taskId));
+            Alert.alert("Success", "Task deleted successfully");
+          } catch (error) {
+            console.error("Error deleting task:", error);
+            Alert.alert("Error", "Failed to delete task");
+          }
+        },
+      },
+    ]);
+  };
+
+  const renderTask = ({ item }: { item: GroupTask }) => {
+    const RightActions = () => {
+      return (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDeleteTask(item.id)}
+        >
+          <Ionicons name="trash" size={24} color="white" />
+        </TouchableOpacity>
+      );
+    };
+    return (
+      <Swipeable renderRightActions={RightActions}>
+        <TouchableOpacity
+          style={styles.taskItem}
+          onPress={() => {
+            if (item.assignedTo === user?.email) {
+              toggleTaskStatus(item.id, !item.completed);
+            }
+          }}
+          disabled={item.assignedTo !== user?.email}
+        >
+          <Ionicons
+            name={item.completed ? "checkbox" : "square-outline"}
+            size={24}
+            color={
+              item.assignedTo === user?.email ? Colors.accent : Colors.text
+            }
+            style={{ opacity: item.assignedTo === user?.email ? 1 : 0.5 }}
+          />
+          <View style={styles.taskContent}>
+            <Text
+              style={[
+                styles.taskTitle,
+                item.completed && styles.taskCompleted,
+                item.assignedTo !== user?.email && styles.taskDisabled,
+              ]}
+            >
+              {item.title}
+            </Text>
+            <Text style={styles.taskDetails}>
+              Assigned to {item.assignedTo} • Due{" "}
+              {item.dueDate.toLocaleDateString()}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </Swipeable>
+    );
   };
 
   const handleDeleteGroup = async () => {
@@ -1077,7 +1158,7 @@ export default function GroupDetails() {
                   style={[styles.button, styles.addButton]}
                   onPress={addReminder}
                 >
-                  <Text style={styles.buttonText}>Add Reminder</Text>
+                  <Ionicons name="add" size={24} color="white" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1088,6 +1169,7 @@ export default function GroupDetails() {
           visible={taskModalVisible}
           animationType="slide"
           onRequestClose={() => setTaskModalVisible(false)}
+          transparent={true}
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
@@ -1357,13 +1439,15 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 5,
     alignItems: "center",
+    fontSize: 16,
   },
   cancelButton: {
     backgroundColor: "#FF3B30",
   },
   buttonText: {
+    fontSize: 16,
     color: "white",
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   totalExpenseContainer: {
     backgroundColor: "#f8f8f8",
