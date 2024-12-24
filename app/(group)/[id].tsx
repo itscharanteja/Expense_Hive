@@ -425,34 +425,6 @@ export default function GroupDetails() {
     );
   };
 
-  const handleLongPressTask = (task: GroupTask) => {
-    // Only allow deletion if user is admin or the assigned person
-    if (user?.email !== group?.createdBy && user?.email !== task.assignedTo) {
-      Alert.alert("Error", "Only admin or assigned person can delete tasks");
-      return;
-    }
-
-    Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteDoc(doc(db, "groupTasks", task.id));
-            Alert.alert("Success", "Task deleted successfully");
-          } catch (error) {
-            console.error("Error deleting task:", error);
-            Alert.alert("Error", "Failed to delete task");
-          }
-        },
-      },
-    ]);
-  };
-
   const addReminder = async () => {
     if (!user || !id || !newReminder.trim()) {
       Alert.alert("Error", "Please enter a reminder");
@@ -572,10 +544,10 @@ export default function GroupDetails() {
     const RightActions = () => {
       return (
         <TouchableOpacity
-          style={styles.deleteButton}
+          style={styles.deleteAction}
           onPress={() => handleDeleteTask(item.id)}
         >
-          <Ionicons name="trash" size={24} color="white" />
+          <Ionicons name="trash" size={24} color="red" />
         </TouchableOpacity>
       );
     };
@@ -750,43 +722,7 @@ export default function GroupDetails() {
     {
       title: "Tasks",
       data: tasks,
-      renderItem: ({ item }: { item: GroupTask }) => (
-        <TouchableOpacity
-          style={styles.taskItem}
-          onPress={() => {
-            if (item.assignedTo === user?.email) {
-              toggleTaskStatus(item.id, !item.completed);
-            }
-          }}
-          onLongPress={() => handleLongPressTask(item)}
-          delayLongPress={500}
-          disabled={item.assignedTo !== user?.email}
-        >
-          <Ionicons
-            name={item.completed ? "checkbox" : "square-outline"}
-            size={24}
-            color={
-              item.assignedTo === user?.email ? Colors.accent : Colors.text
-            }
-            style={{ opacity: item.assignedTo === user?.email ? 1 : 0.5 }}
-          />
-          <View style={styles.taskContent}>
-            <Text
-              style={[
-                styles.taskTitle,
-                item.completed && styles.taskCompleted,
-                item.assignedTo !== user?.email && styles.taskDisabled,
-              ]}
-            >
-              {item.title}
-            </Text>
-            <Text style={styles.taskDetails}>
-              Assigned to {item.assignedTo} • Due{" "}
-              {item.dueDate.toLocaleDateString()}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      ),
+      renderItem: renderTask,
     },
     {
       title: "Members",
@@ -899,24 +835,6 @@ export default function GroupDetails() {
       }
     } catch (error) {
       console.error("Error adding expense:", error);
-    }
-  };
-
-  // Update reminder creation to include notifications
-  const handleAddReminder = async (reminderData: any) => {
-    try {
-      // Create notifications for all group members
-      for (const memberEmail of group?.members || []) {
-        if (memberEmail !== user?.email) {
-          await createNotification("GROUP_REMINDER", {
-            recipientEmail: memberEmail,
-            title: reminderData.title,
-            dueDate: reminderData.dueDate,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error adding reminder:", error);
     }
   };
 
@@ -1555,5 +1473,18 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     textAlign: "right",
     marginTop: 4,
+  },
+  deleteAction: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: 80,
+
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  deleteActionText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });
