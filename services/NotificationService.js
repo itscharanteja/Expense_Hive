@@ -5,7 +5,7 @@ import Constants from "expo-constants";
 import { auth, db } from "../app/config/firebase";
 import { updateDoc, doc } from "firebase/firestore";
 
-// Configure how notifications should be presented when the app is in foreground
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true, // Show alert even when app is in foreground
@@ -86,23 +86,23 @@ export function addNotificationResponseListener(callback) {
   return subscription;
 }
 
-// Add this function to test notifications locally
-export async function testLocalNotification() {
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Test Notification",
-        body: "This is a local test notification!",
-        data: { data: "goes here" },
-        sound: true,
-      },
-      trigger: null,
-    });
-    console.log("Local notification scheduled successfully");
-  } catch (error) {
-    console.error("Error scheduling local notification:", error);
-  }
-}
+// // Add this function to test notifications locally
+// export async function testLocalNotification() {
+//   try {
+//     await Notifications.scheduleNotificationAsync({
+//       content: {
+//         title: "Test Notification",
+//         body: "This is a local test notification!",
+//         data: { data: "goes here" },
+//         sound: true,
+//       },
+//       trigger: null,
+//     });
+//     console.log("Local notification scheduled successfully");
+//   } catch (error) {
+//     console.error("Error scheduling local notification:", error);
+//   }
+// }
 
 // Add this function to save the push token
 export async function savePushToken(token) {
@@ -150,24 +150,24 @@ export async function sendGroupAdditionNotification(
 }
 
 // Add this test function
-export async function testGroupNotification() {
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Test Group Notification",
-        body: "Test: You were added to Test Group by TestUser",
-        data: {
-          type: "GROUP_ADDITION",
-          groupName: "Test Group",
-          addedByUsername: "TestUser",
-        },
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
-      },
-      trigger: null,
-    });
-    console.log("Test group notification sent successfully");
-  } catch (error) {
-    console.error("Error sending test group notification:", error);
-  }
-}
+// export async function testGroupNotification() {
+//   try {
+//     await Notifications.scheduleNotificationAsync({
+//       content: {
+//         title: "Test Group Notification",
+//         body: "Test: You were added to Test Group by TestUser",
+//         data: {
+//           type: "GROUP_ADDITION",
+//           groupName: "Test Group",
+//           addedByUsername: "TestUser",
+//         },
+//         sound: true,
+//         priority: Notifications.AndroidNotificationPriority.HIGH,
+//       },
+//       trigger: null,
+//     });
+//     console.log("Test group notification sent successfully");
+//   } catch (error) {
+//     console.error("Error sending test group notification:", error);
+//   }
+// }

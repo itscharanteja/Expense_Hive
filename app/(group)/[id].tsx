@@ -28,6 +28,7 @@ import {
   deleteDoc,
   orderBy,
   writeBatch,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
@@ -112,6 +113,9 @@ export default function GroupDetails() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedMember, setSelectedMember] = useState("");
   const [taskDueDate, setTaskDueDate] = useState(new Date());
+
+  // 1. Add notification tracking state
+  const [notifiedReminders, setNotifiedReminders] = useState(new Set());
 
   const handleAddTask = async (taskData: any) => {
     try {
@@ -226,53 +230,43 @@ export default function GroupDetails() {
     };
   }, [id, user]);
 
+  // 2. Replace existing reminder notification code
   useEffect(() => {
     if (!user || !group) return;
-
-    // Check reminders every minute
-    const notificationRemainders = new Map<string, boolean>();
 
     const reminderInterval = setInterval(async () => {
       for (const reminder of reminders) {
         const timeUntilDue = reminder.dueDate.getTime() - Date.now();
         const minutesUntilDue = Math.floor(timeUntilDue / (1000 * 60));
 
-        // Check if notification was already sent
         if (
-          minutesUntilDue === 30 &&
-          (!notificationRemainders.has(reminder.id) ||
-            !notificationRemainders.get(reminder.id))
+          minutesUntilDue === 30 && 
+          !notifiedReminders.has(reminder.id)
         ) {
-          notificationRemainders.set(reminder.id, true); // Mark as notified
+          // Mark reminder as notified
+          setNotifiedReminders(prev => new Set([...prev, reminder.id]));
 
-          for (const memberEmail of group.members) {
-            try {
-              const userRef = collection(db, "users");
-              const userQuery = query(
-                userRef,
-                where("email", "==", memberEmail)
-              );
-              const userSnapshot = await getDocs(userQuery);
+          // Single notification dispatch
+          const batch = writeBatch(db);
+          
+          // Create single notification document
+          const notificationRef = doc(collection(db, "notifications"));
+          batch.set(notificationRef, {
+            type: "REMINDER_DUE",
+            reminderId: reminder.id,
+            groupId: group.id,
+            title: reminder.title,
+            createdAt: serverTimestamp(),
+            recipients: group.members
+          });
 
-              if (!userSnapshot.empty) {
-                const userData = userSnapshot.docs[0].data();
-                if (userData.expoPushToken) {
-                  await sendPushNotification(
-                    `Reminder: ${reminder.title} is due in 30 minutes`,
-                    userData.expoPushToken
-                  );
-                }
-              }
-            } catch (error) {
-              console.error("Error sending reminder notification:", error);
-            }
-          }
+          await batch.commit();
         }
       }
-    }, 60000); // Check every minute
+    }, 60000);
 
     return () => clearInterval(reminderInterval);
-  }, [reminders, group]);
+  }, [reminders, group, user, notifiedReminders]);
 
   const toggleTaskStatus = async (taskId: string, completed: boolean) => {
     try {

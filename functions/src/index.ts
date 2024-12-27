@@ -1,4 +1,5 @@
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
+import * as scheduler from "firebase-functions/v1/scheduler";
 import * as admin from "firebase-admin";
 import axios from "axios";
 
@@ -33,9 +34,40 @@ async function sendPushNotification(
   }
 }
 
+// Modify cloud function to handle single notification dispatch
+export const onNotificationCreated = functions.firestore
+  .document("notifications/{notificationId}")
+  .onCreate(async (snap, context) => {
+    const notification = snap.data();
+
+    if (notification.type === "REMINDER_DUE") {
+      // Single batch of notifications
+      const promises = notification.recipients.map(
+        async (recipientEmail: string) => {
+          const userDoc = await admin
+            .firestore()
+            .collection("users")
+            .where("email", "==", recipientEmail)
+            .get();
+
+          if (!userDoc.empty && userDoc.docs[0].data().expoPushToken) {
+            return sendPushNotification(
+              userDoc.docs[0].data().expoPushToken,
+              `${notification.title} is due in 30 minutes`,
+              notification.body,
+              notification
+            );
+          }
+        }
+      );
+
+      await Promise.all(promises.filter(Boolean));
+    }
+  });
+
 // Trigger push notification when a new notification document is created
-export const onNotificationCreated = functions.firestore.onDocumentCreated(
-  "notifications/{notificationId}",
+// export const onNotificationCreated = functions.firestore.onDocumentCreated(
+"notifications/{notificationId}",
   async (event) => {
     console.log("Notification trigger started");
     const notification = event.data?.data();
@@ -95,12 +127,11 @@ export const onNotificationCreated = functions.firestore.onDocumentCreated(
         console.error("Unknown error processing notification");
       }
     }
-  }
-);
-
-export const cleanupReadNotifications = functions.scheduler.onSchedule(
-  "every 5 minutes",
-  async (_event: any) => {
+  };
+// );
+export const cleanupReadNotifications = scheduler
+  .schedule("every 5 minutes")
+  .onRun("every 5 minutes", async (_event: any) => {
     const fiveMinutesAgo = admin.firestore.Timestamp.fromDate(
       new Date(Date.now() - 5 * 60 * 1000)
     );
@@ -118,5 +149,4 @@ export const cleanupReadNotifications = functions.scheduler.onSchedule(
     });
 
     await batch.commit();
-  }
-);
+  });

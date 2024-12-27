@@ -5,7 +5,6 @@ import {
   registerForPushNotificationsAsync,
   addNotificationListener,
   addNotificationResponseListener,
-  testLocalNotification,
   savePushToken,
 } from "../services/NotificationService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
