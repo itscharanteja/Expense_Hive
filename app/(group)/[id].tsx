@@ -38,6 +38,10 @@ import { sendPushNotification } from "../../scripts/sendTestNotification";
 import { Picker } from "@react-native-picker/picker";
 import GradientBackground from "../components/GradientBackground";
 import { Swipeable } from "react-native-gesture-handler";
+import {
+  sendReminderDueNotification,
+  sendNewReminderNotification,
+} from "../../services/NotificationService";
 
 type GroupExpense = {
   id: string;
@@ -116,6 +120,9 @@ export default function GroupDetails() {
 
   // 1. Add notification tracking state
   const [notifiedReminders, setNotifiedReminders] = useState(new Set());
+  const [notificationsSent, setNotificationsSent] = useState<Set<string>>(
+    new Set()
+  );
 
   const handleAddTask = async (taskData: any) => {
     try {
@@ -231,42 +238,74 @@ export default function GroupDetails() {
   }, [id, user]);
 
   // 2. Replace existing reminder notification code
+  // In [app/(group)/[id].tsx]
+
+  const notificationsSentRef = React.useRef(new Set<string>());
   useEffect(() => {
     if (!user || !group) return;
 
+    // Store sent notifications in ref to persist across re-renders
+
     const reminderInterval = setInterval(async () => {
       for (const reminder of reminders) {
+        if (reminder.completed) continue;
+        if (notificationsSentRef.current.has(reminder.id)) continue;
+
         const timeUntilDue = reminder.dueDate.getTime() - Date.now();
         const minutesUntilDue = Math.floor(timeUntilDue / (1000 * 60));
 
-        if (
-          minutesUntilDue === 30 && 
-          !notifiedReminders.has(reminder.id)
-        ) {
-          // Mark reminder as notified
-          setNotifiedReminders(prev => new Set([...prev, reminder.id]));
+        // Only send notification if due in exactly 30 minutes
+        if (minutesUntilDue === 30) {
+          try {
+            // Send notifications to all group members
+            const notificationPromises = group.members.map(
+              async (memberEmail) => {
+                const userRef = collection(db, "users");
+                const userQuery = query(
+                  userRef,
+                  where("email", "==", memberEmail)
+                );
+                const userSnapshot = await getDocs(userQuery);
 
-          // Single notification dispatch
-          const batch = writeBatch(db);
-          
-          // Create single notification document
-          const notificationRef = doc(collection(db, "notifications"));
-          batch.set(notificationRef, {
-            type: "REMINDER_DUE",
-            reminderId: reminder.id,
-            groupId: group.id,
-            title: reminder.title,
-            createdAt: serverTimestamp(),
-            recipients: group.members
-          });
+                if (!userSnapshot.empty) {
+                  const userData = userSnapshot.docs[0].data();
+                  if (userData.expoPushToken) {
+                    await sendReminderDueNotification(
+                      reminder.title,
+                      userData.expoPushToken
+                    );
 
-          await batch.commit();
+                    await addDoc(collection(db, "notifications"), {
+                      type: "GROUP_REMINDER",
+                      groupId: group.id,
+                      groupName: group.name,
+                      title: reminder.title,
+                      dueDate: Timestamp.fromDate(reminder.dueDate),
+                      createdBy: user.email,
+                      recipientEmail: memberEmail,
+                      createdAt: Timestamp.now(),
+                      read: false,
+                    });
+                  }
+                }
+              }
+            );
+
+            // Wait for all notifications to be sent
+            await Promise.all(notificationPromises);
+
+            // Mark this reminder as notified
+            notificationsSentRef.current.add(reminder.id);
+          } catch (error) {
+            console.error("Error sending reminder notification:", error);
+          }
         }
       }
-    }, 60000);
+    }, 60000); // Check every minute
 
+    // Cleanup interval on unmount
     return () => clearInterval(reminderInterval);
-  }, [reminders, group, user, notifiedReminders]);
+  }, [reminders, group, user]);
 
   const toggleTaskStatus = async (taskId: string, completed: boolean) => {
     try {
@@ -475,6 +514,10 @@ export default function GroupDetails() {
             });
           }
         }
+      }
+
+      if (group) {
+        await sendNewReminderNotification(group.name, reminderData.title);
       }
 
       setReminderModalVisible(false);
