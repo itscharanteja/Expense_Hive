@@ -50,7 +50,7 @@ export default function Groups() {
 
   useEffect(() => {
     fetchGroups();
-  }, [groups]);
+  }, [user]); // Only depend on user changes, not groups
 
   const fetchGroups = async () => {
     if (!user) return;

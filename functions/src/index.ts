@@ -1,69 +1,69 @@
 import * as functions from "firebase-functions/v1";
-import * as scheduler from "firebase-functions/v1/scheduler";
+import * as scheduler from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import axios from "axios";
 
 admin.initializeApp();
 
-// Function to send push notification
-async function sendPushNotification(
-  expoPushToken: string,
-  title: string,
-  body: string,
-  data: any = {}
-) {
-  const message = {
-    to: expoPushToken,
-    sound: "default",
-    title,
-    body,
-    data,
-  };
+// // Function to send push notification
+// async function sendPushNotification(
+//   expoPushToken: string,
+//   title: string,
+//   body: string,
+//   data: any = {}
+// ) {
+//   const message = {
+//     to: expoPushToken,
+//     sound: "default",
+//     title,
+//     body,
+//     data,
+//   };
 
-  try {
-    await axios.post("https://exp.host/--/api/v2/push/send", message, {
-      headers: {
-        Accept: "application/json",
-        "Accept-encoding": "gzip, deflate",
-        "Content-Type": "application/json",
-      },
-    });
-  } catch (error) {
-    console.error("Error sending push notification:", error);
-    throw error;
-  }
-}
+//   try {
+//     await axios.post("https://exp.host/--/api/v2/push/send", message, {
+//       headers: {
+//         Accept: "application/json",
+//         "Accept-encoding": "gzip, deflate",
+//         "Content-Type": "application/json",
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error sending push notification:", error);
+//     throw error;
+//   }
+// }
 
 // Modify cloud function to handle single notification dispatch
-export const onNotificationCreated = functions.firestore
-  .document("notifications/{notificationId}")
-  .onCreate(async (snap, context) => {
-    const notification = snap.data();
+// export const onNotificationCreated = functions.firestore
+//   .document("notifications/{notificationId}")
+//   .onCreate(async (snap, context) => {
+//     const notification = snap.data();
 
-    if (notification.type === "REMINDER_DUE") {
-      // Single batch of notifications
-      const promises = notification.recipients.map(
-        async (recipientEmail: string) => {
-          const userDoc = await admin
-            .firestore()
-            .collection("users")
-            .where("email", "==", recipientEmail)
-            .get();
+//     if (notification.type === "REMINDER_DUE") {
+//       // Single batch of notifications
+//       const promises = notification.recipients.map(
+//         async (recipientEmail: string) => {
+//           const userDoc = await admin
+//             .firestore()
+//             .collection("users")
+//             .where("email", "==", recipientEmail)
+//             .get();
 
-          if (!userDoc.empty && userDoc.docs[0].data().expoPushToken) {
-            return sendPushNotification(
-              userDoc.docs[0].data().expoPushToken,
-              `${notification.title} is due in 30 minutes`,
-              notification.body,
-              notification
-            );
-          }
-        }
-      );
+//           if (!userDoc.empty && userDoc.docs[0].data().expoPushToken) {
+//             return sendPushNotification(
+//               userDoc.docs[0].data().expoPushToken,
+//               `${notification.title} is due in 30 minutes`,
+//               notification.body,
+//               notification
+//             );
+//           }
+//         }
+//       );
 
-      await Promise.all(promises.filter(Boolean));
-    }
-  });
+//       await Promise.all(promises.filter(Boolean));
+//     }
+//   });
 
 // Trigger push notification when a new notification document is created
 // export const onNotificationCreated = functions.firestore.onDocumentCreated(
