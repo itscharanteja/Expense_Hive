@@ -34,7 +34,7 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Colors } from "../constants/Colors";
-import { sendPushNotification } from "../../scripts/sendTestNotification";
+import { sendLocalNotification } from "../../services/NotificationService";
 import { Picker } from "@react-native-picker/picker";
 import GradientBackground from "../components/GradientBackground";
 import { Swipeable } from "react-native-gesture-handler";
@@ -142,7 +142,7 @@ export default function GroupDetails() {
         const userData = userSnapshot.docs[0].data();
 
         if (userData.expoPushToken) {
-          await sendPushNotification(
+          await sendLocalNotification(
             `New task assigned: ${taskData.title}`,
             userData.expoPushToken
           );
@@ -364,7 +364,7 @@ export default function GroupDetails() {
         notificationData
       );
       console.log("Notification created with ID:", notificationRef.id);
-      await sendPushNotification(
+      await sendLocalNotification(
         `You have been added to ${group.name}`,
         memberDoc.data().expoPushToken
       );
@@ -492,7 +492,7 @@ export default function GroupDetails() {
             if (!userSnapshot.empty) {
               const userData = userSnapshot.docs[0].data();
               if (userData.expoPushToken) {
-                await sendPushNotification(
+                await sendLocalNotification(
                   `New reminder in ${group.name}: ${reminderData.title}`,
                   userData.expoPushToken
                 );
