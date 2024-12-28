@@ -341,6 +341,7 @@ export default function Expenses() {
             data={expenses}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingBottom: 80 }}
+            showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -358,7 +359,6 @@ export default function Expenses() {
                 onLongPress={() =>
                   !item.isGroup && handleLongPressExpense(item)
                 }
-                delayLongPress={500}
               >
                 <View>
                   {item.isGroup ? (

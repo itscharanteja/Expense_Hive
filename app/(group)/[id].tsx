@@ -918,6 +918,7 @@ export default function GroupDetails() {
 
         <SectionList
           sections={sections}
+          showsVerticalScrollIndicator={false}
           renderSectionHeader={({ section: { title } }) => (
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{title}</Text>
