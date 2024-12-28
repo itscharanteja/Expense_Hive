@@ -10,7 +10,7 @@ import {
   Alert,
   Modal,
 } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import {
   doc,
@@ -23,7 +23,7 @@ import {
 import { db } from "../../../config/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../../context/auth";
-import ImageViewer from 'react-native-image-zoom-viewer';
+import ImageViewer from "react-native-image-zoom-viewer";
 
 type ExpenseDetails = {
   id: string;
@@ -172,7 +172,7 @@ export default function ExpenseDetails() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.contentContainer}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -185,13 +185,19 @@ export default function ExpenseDetails() {
           <View style={{ width: 24 }} />
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+        >
           {/* Expense Details Card */}
           <View style={styles.card}>
             <Text style={styles.description}>{expense.description}</Text>
             <Text style={styles.amount}>{expense.amount.toFixed(2)} kr</Text>
             <View style={styles.expenseMetaContainer}>
-              <Text style={styles.date}>{expense.date.toLocaleDateString()}</Text>
+              <Text style={styles.date}>
+                {expense.date.toLocaleDateString()}
+              </Text>
               <View style={styles.creatorTag}>
                 <Ionicons name="person-outline" size={14} color="#007AFF" />
                 <Text style={styles.creatorText}>
@@ -329,7 +335,10 @@ export default function ExpenseDetails() {
                           await deleteDoc(
                             doc(db, "groupExpenses", expenseId as string)
                           );
-                          Alert.alert("Success", "Expense deleted successfully");
+                          Alert.alert(
+                            "Success",
+                            "Expense deleted successfully"
+                          );
                           router.back();
                         } catch (error) {
                           console.error("Error deleting expense:", error);
@@ -363,7 +372,7 @@ export default function ExpenseDetails() {
             <Ionicons name="close" size={28} color="white" />
           </TouchableOpacity>
           <ImageViewer
-            imageUrls={[{ url: receipt || '' }]}
+            imageUrls={[{ url: receipt || "" }]}
             enableSwipeDown
             onSwipeDown={() => setIsImageFullScreen(false)}
             renderIndicator={() => <></>}
@@ -396,11 +405,11 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   contentContainer: {
     flex: 1,
-    paddingTop: 4,     // Decreased from 8 to 4
+    paddingTop: 4, // Decreased from 8 to 4
     paddingBottom: 16,
   },
   header: {
@@ -408,14 +417,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 4,   // Decreased from 6 to 4
+    paddingVertical: 4, // Decreased from 6 to 4
     marginBottom: 0,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     backgroundColor: "#fff",
   },
   backButton: {
-    padding: 4,         // Decreased from 8 to 4
+    padding: 4, // Decreased from 8 to 4
   },
   headerTitle: {
     fontSize: 20,
@@ -424,10 +433,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 16,     // Add top padding
+    paddingTop: 16, // Add top padding
   },
   scrollContent: {
-    paddingTop: 12,     // Add padding to scroll content
+    paddingTop: 12, // Add padding to scroll content
     paddingBottom: 24,
   },
   card: {
@@ -440,7 +449,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
-    marginTop: 8,      // Add top margin to first card
+    marginTop: 8, // Add top margin to first card
   },
   description: {
     fontSize: 20,
@@ -453,14 +462,14 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     marginBottom: 8,
     flexShrink: 1,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   expenseMetaContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     marginBottom: 4,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   date: {
     fontSize: 14,
@@ -525,7 +534,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginRight: 16,
-    maxWidth: '65%',
+    maxWidth: "65%",
   },
   memberEmail: {
     fontSize: 16,
@@ -539,7 +548,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#007AFF",
     minWidth: 80,
-    textAlign: 'right',
+    textAlign: "right",
   },
   receiptImage: {
     width: "100%",
@@ -607,24 +616,24 @@ const styles = StyleSheet.create({
   },
   fullScreenContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: "rgba(0, 0, 0, 0.95)",
     paddingHorizontal: 20,
   },
   fullScreenImage: {
     flex: 1,
   },
   zoomedImage: {
-    width: '100%',
-    height: '90%',
-    alignSelf: 'center',
+    width: "100%",
+    height: "90%",
+    alignSelf: "center",
   },
   closeButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 50,
     right: 20,
     zIndex: 2,
     padding: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     borderRadius: 20,
   },
 });

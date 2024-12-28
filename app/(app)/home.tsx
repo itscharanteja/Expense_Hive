@@ -402,6 +402,7 @@ export default function Home() {
         style={styles.expensesList}
         data={summary.recentExpenses}
         renderItem={renderRecentExpense}
+        showsVerticalScrollIndicator={false}
         keyExtractor={(item) =>
           `${item.isGroup ? "group" : "personal"}_${item.id}`
         } // Use composite key
