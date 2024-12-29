@@ -9,6 +9,11 @@
     "userInterfaceStyle": "automatic",
     "owner": "itscharanteja",
     "plugins": ["expo-router", "expo-notifications", "expo-font"],
+    "splash": {
+      "image": "./assets/images/expense.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "androidStatusBar": {
       "backgroundColor": "#ffffff",
       "translucent": false,
@@ -29,7 +34,7 @@
       "package": "com.itscharanteja.exphive",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/expense.png",
         "backgroundColor": "#ffffff"
       }
     },

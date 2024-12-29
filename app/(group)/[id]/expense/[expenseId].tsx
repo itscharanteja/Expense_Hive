@@ -24,6 +24,7 @@ import { db } from "../../../config/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../../context/auth";
 import ImageViewer from "react-native-image-zoom-viewer";
+import React from "react";
 
 type ExpenseDetails = {
   id: string;

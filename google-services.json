@@ -1,27 +1,36 @@
 {
   "project_info": {
-    "project_number": "524048597486",
-    "firebase_url": "https://expensehive-f431e-default-rtdb.firebaseio.com",
-    "project_id": "expensehive-f431e",
-    "storage_bucket": "expensehive-f431e.firebasestorage.app"
+    "project_number": "198416127927",
+    "project_id": "expensehive2",
+    "storage_bucket": "expensehive2.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:524048597486:android:2723ed666f34d266a6ceff",
+        "mobilesdk_app_id": "1:198416127927:android:7186e79b76b9bc59bd7a32",
         "android_client_info": {
-          "package_name": "com.itscharanteja.exphive"
+          "package_name": "com.itscharanteja.expensehive"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "198416127927-k40fltn1biml775fo5sttvpl3h8b4qkl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyB-bw_LK7qry-f8EfNq_JuIsMbha-cgLio"
+          "current_key": "AIzaSyDAJ5qUsOrjOEoeNIpfsbvSEKr6EWWOI6k"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "198416127927-k40fltn1biml775fo5sttvpl3h8b4qkl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
