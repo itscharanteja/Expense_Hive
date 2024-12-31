@@ -8,7 +8,18 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "owner": "itscharanteja",
-    "plugins": ["expo-router", "expo-notifications", "expo-font"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": ["./assets/sounds/notification.wav"]
+        }
+      ],
+      "expo-font"
+    ],
     "splash": {
       "image": "./assets/images/expense.png",
       "resizeMode": "contain",
@@ -24,14 +35,24 @@
       "color": "#ffffff",
       "iosDisplayInForeground": true,
       "androidMode": "default",
-      "androidCollapsedTitle": "New Notification"
+      "androidCollapsedTitle": "ExpHive"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.itscharanteja.expensehive"
     },
     "android": {
-      "package": "com.itscharanteja.exphive",
+      "splash": {
+        "backgroundColor": "#ffffff",
+        "resizeMode": "contain",
+        "image": "./assets/images/expense.png",
+        "dark": {
+          "backgroundColor": "#000000",
+          "resizeMode": "contain",
+          "image": "./assets/images/expense.png"
+        }
+      },
+      "package": "com.itscharanteja.expensehive",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/expense.png",

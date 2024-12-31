@@ -34,13 +34,14 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Colors } from "../constants/Colors";
-import { sendLocalNotification } from "../../services/NotificationService";
 import { Picker } from "@react-native-picker/picker";
 import GradientBackground from "../components/GradientBackground";
 import { Swipeable } from "react-native-gesture-handler";
 import {
   sendReminderDueNotification,
   sendNewReminderNotification,
+  sendNewTaskNotification,
+  sendGroupAdditionNotification,
 } from "../../services/NotificationService";
 
 type GroupExpense = {
@@ -89,11 +90,11 @@ const getDueColor = (dueDate: Date) => {
   const diffHours = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
   if (diffHours < 0) {
-    return "#FF3B30"; // Red for overdue
+    return "#FF3B30"; //Red
   } else if (diffHours <= 6) {
-    return "#FF9500"; // Orange for due within 6 hours
+    return "#FF9500"; //Orange
   } else {
-    return "#34C759"; // Green for due later
+    return "#34C759"; //Green
   }
 };
 
@@ -118,12 +119,6 @@ export default function GroupDetails() {
   const [selectedMember, setSelectedMember] = useState("");
   const [taskDueDate, setTaskDueDate] = useState(new Date());
 
-  // 1. Add notification tracking state
-  const [notifiedReminders, setNotifiedReminders] = useState(new Set());
-  const [notificationsSent, setNotificationsSent] = useState<Set<string>>(
-    new Set()
-  );
-
   const handleAddTask = async (taskData: any) => {
     try {
       const newTask = await addDoc(collection(db, "groupTasks"), {
@@ -142,10 +137,7 @@ export default function GroupDetails() {
         const userData = userSnapshot.docs[0].data();
 
         if (userData.expoPushToken) {
-          await sendLocalNotification(
-            `New task assigned: ${taskData.title}`,
-            userData.expoPushToken
-          );
+          await sendNewTaskNotification(userData.expoPushToken, taskData.title);
         }
       }
     } catch (error) {
@@ -155,8 +147,6 @@ export default function GroupDetails() {
 
   useEffect(() => {
     if (!user || !id) return;
-
-    // Fetch group details
     const fetchGroup = async () => {
       try {
         const groupDoc = await getDoc(doc(db, "groups", id as string));
@@ -171,36 +161,27 @@ export default function GroupDetails() {
         Alert.alert("Error", "Failed to load group details");
       }
     };
-
-    // Listen to group expenses
     const expensesQuery = query(
       collection(db, "groupExpenses"),
       where("groupId", "==", id)
     );
-
     const unsubscribeExpenses = onSnapshot(expensesQuery, (snapshot) => {
       const expensesData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         date: doc.data().date.toDate(),
       })) as GroupExpense[];
-
-      // Calculate total group expense
       const total = expensesData.reduce(
         (sum, expense) => sum + expense.amount,
         0
       );
       setTotalGroupExpense(total);
-
       setExpenses(expensesData);
     });
-
-    // Listen to group tasks
     const tasksQuery = query(
       collection(db, "groupTasks"),
       where("groupId", "==", id)
     );
-
     const unsubscribeTasks = onSnapshot(tasksQuery, (snapshot) => {
       const tasksData = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -209,14 +190,11 @@ export default function GroupDetails() {
       })) as GroupTask[];
       setTasks(tasksData);
     });
-
-    // Listen to group reminders
     const remindersQuery = query(
       collection(db, "groupReminders"),
       where("groupId", "==", id),
       orderBy("dueDate", "asc")
     );
-
     const unsubscribeReminders = onSnapshot(remindersQuery, (snapshot) => {
       const remindersData = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -226,38 +204,26 @@ export default function GroupDetails() {
       })) as GroupReminder[];
       setReminders(remindersData);
     });
-
     fetchGroup();
     setLoading(false);
-
     return () => {
       unsubscribeExpenses();
       unsubscribeTasks();
       unsubscribeReminders();
     };
-  }, [id, user]);
-
-  // 2. Replace existing reminder notification code
-  // In [app/(group)/[id].tsx]
-
+  }, [id, user, userData]);
   const notificationsSentRef = React.useRef(new Set<string>());
+
   useEffect(() => {
     if (!user || !group) return;
-
-    // Store sent notifications in ref to persist across re-renders
-
     const reminderInterval = setInterval(async () => {
       for (const reminder of reminders) {
         if (reminder.completed) continue;
         if (notificationsSentRef.current.has(reminder.id)) continue;
-
         const timeUntilDue = reminder.dueDate.getTime() - Date.now();
         const minutesUntilDue = Math.floor(timeUntilDue / (1000 * 60));
-
-        // Only send notification if due in exactly 30 minutes
         if (minutesUntilDue === 30) {
           try {
-            // Send notifications to all group members
             const notificationPromises = group.members.map(
               async (memberEmail) => {
                 const userRef = collection(db, "users");
@@ -266,15 +232,13 @@ export default function GroupDetails() {
                   where("email", "==", memberEmail)
                 );
                 const userSnapshot = await getDocs(userQuery);
-
                 if (!userSnapshot.empty) {
                   const userData = userSnapshot.docs[0].data();
                   if (userData.expoPushToken) {
                     await sendReminderDueNotification(
-                      reminder.title,
-                      userData.expoPushToken
+                      userData.expoPushToken,
+                      reminder.title
                     );
-
                     await addDoc(collection(db, "notifications"), {
                       type: "GROUP_REMINDER",
                       groupId: group.id,
@@ -290,22 +254,16 @@ export default function GroupDetails() {
                 }
               }
             );
-
-            // Wait for all notifications to be sent
             await Promise.all(notificationPromises);
-
-            // Mark this reminder as notified
             notificationsSentRef.current.add(reminder.id);
           } catch (error) {
             console.error("Error sending reminder notification:", error);
           }
         }
       }
-    }, 60000); // Check every minute
-
-    // Cleanup interval on unmount
+    }, 60000);
     return () => clearInterval(reminderInterval);
-  }, [reminders, group, user]);
+  }, [reminders, user, group]);
 
   const toggleTaskStatus = async (taskId: string, completed: boolean) => {
     try {
@@ -322,8 +280,6 @@ export default function GroupDetails() {
     try {
       setAddingMember(true);
       console.log("Adding member:", memberEmail);
-
-      // First check if user exists
       const usersRef = collection(db, "users");
       const userQuery = query(
         usersRef,
@@ -364,9 +320,11 @@ export default function GroupDetails() {
         notificationData
       );
       console.log("Notification created with ID:", notificationRef.id);
-      await sendLocalNotification(
-        `You have been added to ${group.name}`,
-        memberDoc.data().expoPushToken
+      console.log(memberDoc.data());
+      await sendGroupAdditionNotification(
+        memberDoc.data().expoPushToken,
+        group.name,
+        userData.username
       );
 
       setMemberEmail("");
@@ -492,9 +450,10 @@ export default function GroupDetails() {
             if (!userSnapshot.empty) {
               const userData = userSnapshot.docs[0].data();
               if (userData.expoPushToken) {
-                await sendLocalNotification(
-                  `New reminder in ${group.name}: ${reminderData.title}`,
-                  userData.expoPushToken
+                await sendNewReminderNotification(
+                  userData.expoPushToken,
+                  group.name,
+                  reminderData.title
                 );
               }
             }
@@ -711,19 +670,6 @@ export default function GroupDetails() {
     );
   };
 
-  const toggleExpenseStatus = async (expenseId: string, settled: boolean) => {
-    try {
-      await updateDoc(doc(db, "groupExpenses", expenseId), {
-        settled: !settled,
-      });
-
-      console.log(`Expense ${expenseId} ${settled ? "unsettled" : "settled"}`);
-    } catch (error) {
-      console.error("Error toggling expense status:", error);
-      Alert.alert("Error", "Failed to update expense status");
-    }
-  };
-
   const sections: Section[] = [
     {
       title: "Expenses",
@@ -837,23 +783,17 @@ export default function GroupDetails() {
         dueDate: taskDueDate,
         groupId: id,
       };
-
       await handleAddTask(taskData);
-
-      // Reset form
       setNewTaskTitle("");
       setSelectedMember("");
       setTaskDueDate(new Date());
       setTaskModalVisible(false);
-
       Alert.alert("Success", "Task added successfully");
     } catch (error) {
       console.error("Error adding task:", error);
       Alert.alert("Error", "Failed to add task");
     }
   };
-
-  // Add this function for handling long press on reminders
   const handleLongPressReminder = (reminder: GroupReminder) => {
     Alert.alert(
       "Delete Reminder",
@@ -879,7 +819,6 @@ export default function GroupDetails() {
       ]
     );
   };
-
   if (loading || !group) {
     return (
       <View style={[styles.container, styles.centerContent]}>
