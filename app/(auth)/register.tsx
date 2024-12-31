@@ -25,6 +25,15 @@ export default function Register() {
   const { signUp } = useAuth();
 
   const handleRegister = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      Alert.alert("Error", "Please enter a valid email address");
+      return;
+    }
     try {
       if (!username.trim()) {
         Alert.alert("Error", "Please enter a username");

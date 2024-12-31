@@ -17,6 +17,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -24,8 +25,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password.trim()) {
       Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      Alert.alert("Error", "Please enter a valid email address");
       return;
     }
 

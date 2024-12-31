@@ -3,6 +3,7 @@ import * as Device from "expo-device";
 import { Platform } from "react-native";
 import axios from "axios";
 import { doc, updateDoc } from "firebase/firestore";
+import { auth, db } from "../app/config/firebase";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

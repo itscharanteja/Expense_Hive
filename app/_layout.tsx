@@ -54,7 +54,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(app)" options={{ headerShown: false }} />
           <Stack.Screen name="(group)" options={{ headerShown: false }} />
-          <Stack.Screen name="add-expense" options={{ headerShown: false }} />
+          {/* <Stack.Screen name="add-expense" options={{ headerShown: false }} /> */}
         </Stack>
       </AuthProvider>
     </GestureHandlerRootView>
