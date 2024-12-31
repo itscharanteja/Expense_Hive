@@ -1,12 +1,6 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { AuthProvider } from "./context/auth";
-import {
-  registerForPushNotificationsAsync,
-  addNotificationListener,
-  addNotificationResponseListener,
-  savePushToken,
-} from "../services/NotificationService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function RootLayout() {
