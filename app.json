@@ -53,7 +53,7 @@
         }
       },
       "package": "com.itscharanteja.expensehive",
-      "googleServicesFile": "./google-services.json",
+      "googleServicesFile": "./android/app/google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/expense.png",
         "backgroundColor": "#ffffff"

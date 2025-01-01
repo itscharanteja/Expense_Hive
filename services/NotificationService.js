@@ -96,11 +96,11 @@ export function addNotificationResponseListener(callback) {
 export async function sendPushNotification(to, title, body, data = {}) {
   try {
     const message = {
-      to, // Expo Push Token
+      to,
       sound: "default",
-      title, // Notification title
-      body, // Notification body
-      data, // Additional data
+      title,
+      body,
+      data,
     };
 
     await axios.post("https://exp.host/--/api/v2/push/send", message, {

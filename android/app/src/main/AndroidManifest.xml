@@ -30,7 +30,6 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="myapp"/>
-        <data android:scheme="com.itscharanteja.exphive"/>
         <data android:scheme="com.itscharanteja.expensehive"/>
       </intent-filter>
     </activity>
