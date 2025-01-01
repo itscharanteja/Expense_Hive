@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ExpHive",
+    "name": "ExpenseHive",
     "slug": "expense-hive",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -35,7 +35,7 @@
       "color": "#ffffff",
       "iosDisplayInForeground": true,
       "androidMode": "default",
-      "androidCollapsedTitle": "Expense Hive"
+      "androidCollapsedTitle": "ExpenseHive"
     },
     "ios": {
       "supportsTablet": true,

@@ -109,6 +109,8 @@ export default function GroupDetails() {
   const [memberModalVisible, setMemberModalVisible] = useState(false);
   const [memberEmail, setMemberEmail] = useState("");
   const [addingMember, setAddingMember] = useState(false);
+  const [addRemainder, setAddReminder] = useState(false);
+  const [addTask, setAddTask] = useState(false);
   const [reminders, setReminders] = useState<GroupReminder[]>([]);
   const [reminderModalVisible, setReminderModalVisible] = useState(false);
   const [newReminder, setNewReminder] = useState("");
@@ -423,6 +425,7 @@ export default function GroupDetails() {
     }
 
     try {
+      setAddReminder(true);
       const reminderData = {
         title: newReminder.trim(),
         dueDate: Timestamp.fromDate(selectedDate),
@@ -486,6 +489,8 @@ export default function GroupDetails() {
     } catch (error) {
       console.error("Error adding reminder:", error);
       Alert.alert("Error", "Failed to add reminder");
+    } finally {
+      setAddReminder(false);
     }
   };
 
@@ -771,6 +776,7 @@ export default function GroupDetails() {
 
   const onAddTaskPress = async () => {
     try {
+      setAddTask(true);
       if (!user || !userData || !newTaskTitle || !selectedMember) {
         Alert.alert("Error", "Please fill in all task details");
         return;
@@ -792,6 +798,8 @@ export default function GroupDetails() {
     } catch (error) {
       console.error("Error adding task:", error);
       Alert.alert("Error", "Failed to add task");
+    } finally {
+      setAddTask(false);
     }
   };
   const handleLongPressReminder = (reminder: GroupReminder) => {
@@ -944,12 +952,6 @@ export default function GroupDetails() {
                   <Text style={styles.buttonText}>
                     {addingMember ? "Adding..." : "Add Member"}
                   </Text>
-                  {/* <Ionicons
-                    name="person-add"
-                    size={24}
-                    color="red"
-                    style={styles.buttonText}
-                  /> */}
                 </TouchableOpacity>
               </View>
             </View>
@@ -1003,10 +1005,16 @@ export default function GroupDetails() {
                   <Text style={styles.buttonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.addModalButton]}
+                  style={[
+                    styles.addModalButton,
+                    addRemainder && styles.buttonDisabled,
+                  ]}
                   onPress={addReminder}
+                  disabled={addRemainder}
                 >
-                  <Text style={styles.buttonText}>Add Reminder</Text>
+                  <Text style={styles.buttonText}>
+                    {addRemainder ? "Adding..." : "Add Reminder"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1070,10 +1078,16 @@ export default function GroupDetails() {
                   <Text style={styles.buttonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.addModalButton]}
+                  style={[
+                    styles.addModalButton,
+                    addTask && styles.buttonDisabled,
+                  ]}
                   onPress={onAddTaskPress}
+                  disabled={addTask}
                 >
-                  <Text style={styles.buttonText}>Add Task</Text>
+                  <Text style={styles.buttonText}>
+                    {addTask ? "Adding..." : "Add Task"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
