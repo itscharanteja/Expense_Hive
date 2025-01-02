@@ -13,6 +13,7 @@ module.exports = function (api) {
           safe: false,
           allowUndefined: true,
         },
+        "@babel/plugin-transform-runtime",
       ],
     ],
   };
