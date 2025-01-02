@@ -18,7 +18,9 @@ import { auth } from "../config/firebase";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
+
 import { router } from "expo-router";
+
 
 export default function Login() {
   const [email, setEmail] = useState("");
