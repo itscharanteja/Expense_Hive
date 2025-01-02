@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { sendPushNotification } from "../../scripts/sendTestNotification";
+import { sendGroupAdditionNotification } from "@/services/NotificationService";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -49,8 +49,10 @@ export default function Groups() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchGroups();
-  }, [user]); // Only depend on user changes, not groups
+    if (user) {
+      fetchGroups();
+    }
+  }, [user, groups]);
 
   const fetchGroups = async () => {
     if (!user) return;
@@ -77,7 +79,7 @@ export default function Groups() {
     }
   };
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchGroups();
   }, []);
@@ -120,13 +122,11 @@ export default function Groups() {
 
       const batch = writeBatch(db);
       for (const memberEmail of selectedMembers) {
-        console.log("Processing member:", memberEmail);
         const usersRef = collection(db, "users");
         const userQuery = query(usersRef, where("email", "==", memberEmail));
         const userSnapshot = await getDocs(userQuery);
 
         if (!userSnapshot.empty) {
-          console.log("Found user document for:", memberEmail);
           const userDoc = userSnapshot.docs[0];
           const userData = userDoc.data();
           const recipientId = userDoc.id;
@@ -137,7 +137,7 @@ export default function Groups() {
             groupId: groupRef.id,
             groupName: newGroupName.trim(),
             createdBy: user.email,
-            createdByUsername: userData.username,
+            createdByUsername: userData.username || "Unknown",
             recipientEmail: memberEmail,
             recipientId,
             createdAt: Timestamp.now(),
@@ -145,9 +145,10 @@ export default function Groups() {
           });
 
           if (userData.expoPushToken) {
-            await sendPushNotification(
-              `You were added to ${newGroupName.trim()}`,
-              userData.expoPushToken
+            await sendGroupAdditionNotification(
+              userData.expoPushToken,
+              newGroupName.trim(),
+              user.email
             );
           }
         }

@@ -2,44 +2,50 @@ import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { AuthProvider } from "./context/auth";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  registerForPushNotificationsAsync,
+  savePushToken,
+  addNotificationListener,
+  addNotificationResponseListener,
+} from "@/services/NotificationService";
 
 export default function RootLayout() {
-  // useEffect(() => {
-  //   async function setupNotifications() {
-  //     try {
-  //       console.log("Setting up notifications...");
-  //       const token = await registerForPushNotificationsAsync();
-  //       console.log("Got token:", token);
+  useEffect(() => {
+    async function setupNotifications() {
+      try {
+        console.log("Setting up notifications...");
+        const token = await registerForPushNotificationsAsync();
+        console.log("Got token:", token);
 
-  //       if (token) {
-  //         console.log("Saving token to Firestore...");
-  //         await savePushToken(token);
-  //         console.log("Token saved successfully");
-  //       }
+        if (token) {
+          console.log("Saving token to Firestore...");
+          await savePushToken(token);
+          console.log("Token saved successfully");
+        }
 
-  //       const notificationListener = addNotificationListener(
-  //         (notification: any) => {
-  //           console.log("Received foreground notification:", notification);
-  //         }
-  //       );
+        const notificationListener = addNotificationListener(
+          (notification: any) => {
+            console.log("Received foreground notification:", notification);
+          }
+        );
 
-  //       const responseListener = addNotificationResponseListener(
-  //         (response: any) => {
-  //           console.log("Notification response:", response);
-  //         }
-  //       );
+        const responseListener = addNotificationResponseListener(
+          (response: any) => {
+            console.log("Notification response:", response);
+          }
+        );
 
-  //       return () => {
-  //         notificationListener.remove();
-  //         responseListener.remove();
-  //       };
-  //     } catch (error) {
-  //       console.error("Error in notification setup:", error);
-  //     }
-  //   }
+        return () => {
+          notificationListener.remove();
+          responseListener.remove();
+        };
+      } catch (error) {
+        console.error("Error in notification setup:", error);
+      }
+    }
 
-  //   setupNotifications();
-  // }, []);
+    setupNotifications();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -48,7 +54,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(app)" options={{ headerShown: false }} />
           <Stack.Screen name="(group)" options={{ headerShown: false }} />
-          <Stack.Screen name="add-expense" options={{ headerShown: false }} />
+          {/* <Stack.Screen name="add-expense" options={{ headerShown: false }} /> */}
         </Stack>
       </AuthProvider>
     </GestureHandlerRootView>

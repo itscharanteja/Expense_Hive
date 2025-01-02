@@ -17,6 +17,8 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
+import { router } from "expo-router";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -24,8 +26,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password.trim()) {
       Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      Alert.alert("Error", "Please enter a valid email address");
       return;
     }
 
@@ -69,6 +76,7 @@ export default function Login() {
 
             <View style={styles.formContainer}>
               <TextInput
+                testID="email-input"
                 style={styles.input}
                 placeholder="Email"
                 value={email}
@@ -77,6 +85,7 @@ export default function Login() {
                 keyboardType="email-address"
               />
               <TextInput
+                testID="password-input"
                 style={styles.input}
                 placeholder="Password"
                 value={password}
@@ -85,6 +94,7 @@ export default function Login() {
               />
 
               <TouchableOpacity
+                testID="login-button"
                 style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleLogin}
                 disabled={loading}
@@ -96,11 +106,12 @@ export default function Login() {
 
               <View style={styles.footer}>
                 <Text style={styles.footerText}>Don't have an account? </Text>
-                <Link href="/(auth)/register" asChild>
-                  <TouchableOpacity>
-                    <Text style={styles.linkText}>Sign Up</Text>
-                  </TouchableOpacity>
-                </Link>
+                <TouchableOpacity
+                  testID="register-link"
+                  onPress={() => router.push('/(auth)/register')}
+                >
+                  <Text style={styles.linkText}>Sign Up</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </ScrollView>

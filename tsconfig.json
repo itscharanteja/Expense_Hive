@@ -3,9 +3,11 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-native",
+    "typeRoots": ["./types"],
     "esModuleInterop": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@env": ["./types/env"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"]
