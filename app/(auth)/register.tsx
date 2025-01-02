@@ -94,6 +94,7 @@ export default function Register() {
 
           <View style={styles.formContainer}>
             <TextInput
+              testID="username-input"
               style={styles.input}
               placeholder="Username"
               value={username}
@@ -102,6 +103,7 @@ export default function Register() {
             />
 
             <TextInput
+              testID="email-input"
               style={styles.input}
               placeholder="Email"
               value={email}
@@ -111,6 +113,7 @@ export default function Register() {
             />
 
             <TextInput
+              testID="password-input"
               style={styles.input}
               placeholder="Password"
               value={password}
@@ -127,6 +130,7 @@ export default function Register() {
             />
 
             <TouchableOpacity
+              testID="register-button"
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleRegister}
               disabled={loading}
@@ -139,7 +143,10 @@ export default function Register() {
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>
               <Link href="/(auth)/login" asChild>
-                <TouchableOpacity>
+                <TouchableOpacity
+                  testID="login-link"
+                  onPress={() => router.push('/(auth)/login')}
+                >
                   <Text style={styles.linkText}>Login</Text>
                 </TouchableOpacity>
               </Link>

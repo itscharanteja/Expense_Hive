@@ -149,13 +149,18 @@ export default function AddExpense() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <TouchableOpacity 
+              testID="back-button"
+              onPress={handleBack}
+              style={styles.backButton}
+            >
               <Ionicons name="arrow-back" size={24} color={Colors.accent} />
             </TouchableOpacity>
             <Text style={styles.title}>Add Expense</Text>
           </View>
 
           <TextInput
+            testID="amount-input"
             style={styles.input}
             placeholder="Amount"
             value={amount}
@@ -184,6 +189,7 @@ export default function AddExpense() {
 
           <View style={styles.pickerContainer}>
             <Picker
+              testID="category-picker"
               selectedValue={category}
               onValueChange={(itemValue) => setCategory(itemValue)}
               style={styles.picker}
@@ -201,6 +207,7 @@ export default function AddExpense() {
           </View>
 
           <TextInput
+            testID="description-input"
             style={[styles.input, styles.descriptionInput]}
             placeholder="Description"
             value={description}
@@ -209,6 +216,9 @@ export default function AddExpense() {
           />
 
           <TouchableOpacity
+            testID="save-expense-button"
+            role="button"
+            accessibilityLabel="Add Expense"
             style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
             onPress={handleSubmit}
             disabled={isSubmitting}

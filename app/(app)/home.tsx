@@ -6,6 +6,7 @@ import {
   RefreshControl,
   FlatList,
   StatusBar,
+  TouchableOpacity,
 } from "react-native";
 import { useAuth } from "../context/auth";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +23,7 @@ import {
 import { db } from "../config/firebase";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from 'expo-router';
 
 type ExpenseSummary = {
   totalPersonal: number;
@@ -415,6 +417,14 @@ export default function Home() {
           />
         }
       />
+
+      <TouchableOpacity
+        testID="add-expense-button"
+        onPress={() => router.push('/(app)/add-expense')}
+        style={styles.addButton}
+      >
+        <Text style={styles.buttonText}>Add Expense</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -566,5 +576,18 @@ const styles = StyleSheet.create({
   },
   groupAmount: {
     color: Colors.primary,
+  },
+  addButton: {
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    alignSelf: "center",
+    marginTop: 24,
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: Colors.white,
   },
 });
