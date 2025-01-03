@@ -23,7 +23,7 @@ import {
 import { db } from "../config/firebase";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from 'expo-router';
+import { router } from "expo-router";
 
 type ExpenseSummary = {
   totalPersonal: number;
@@ -417,14 +417,6 @@ export default function Home() {
           />
         }
       />
-
-      <TouchableOpacity
-        testID="add-expense-button"
-        onPress={() => router.push('/(app)/add-expense')}
-        style={styles.addButton}
-      >
-        <Text style={styles.buttonText}>Add Expense</Text>
-      </TouchableOpacity>
     </View>
   );
 }
