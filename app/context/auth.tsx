@@ -49,11 +49,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const auth = getAuth();
         if (!auth) {
-          throw new Error('Firebase Auth not initialized');
+          throw new Error("Firebase Auth not initialized");
         }
 
         const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
           setUser(user);
+          if (user) {
+            getDoc(doc(db, "users", user.uid)).then((doc) => {
+              if (doc.exists()) {
+                setUserData(doc.data() as UserData);
+              }
+            });
+          }
           setLoading(false);
         });
 
