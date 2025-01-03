@@ -27,7 +27,8 @@
       "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "./__mocks__/fileMock.js",
       "expo-router": "./__mocks__/expo-router.js",
       "expo-linear-gradient": "./__mocks__/expo-linear-gradient.js",
-      "@expo/vector-icons": "./__mocks__/expo-vector-icons.js"
+      "@expo/vector-icons": "./__mocks__/expo-vector-icons.js",
+      "firebase/.*": "./__mocks__/firebase.ts"
     },
     "testMatch": [
       "**/__tests__/**/*.[jt]s?(x)",
@@ -37,7 +38,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
-    "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-async-storage/async-storage": "^1.23.1",
     "@react-native-community/datetimepicker": "8.2.0",
     "@react-native-firebase/app": "^21.5.0",
     "@react-native-firebase/auth": "^21.5.0",
