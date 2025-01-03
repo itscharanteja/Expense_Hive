@@ -5,7 +5,6 @@ import { useAuth } from "./context/auth";
 export default function Index() {
   const { user, loading } = useAuth();
 
-  // Show loading indicator while checking authentication state
   if (loading) {
     return (
       <View style={styles.container}>
@@ -14,7 +13,6 @@ export default function Index() {
     );
   }
 
-  // Redirect based on authentication state
   if (user) {
     return <Redirect href="/home" />;
   }

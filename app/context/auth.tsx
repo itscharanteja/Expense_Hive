@@ -5,6 +5,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User,
+  getAuth,
 } from "firebase/auth";
 import {
   doc,
@@ -46,19 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            // Fetch user data including username
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-              const userData = userDoc.data() as UserData;
-              setUserData(userData);
-            }
-            setUser(user);
-          } else {
-            setUser(null);
-            setUserData(null);
-          }
+        const auth = getAuth();
+        if (!auth) {
+          throw new Error('Firebase Auth not initialized');
+        }
+
+        const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
+          setUser(user);
           setLoading(false);
         });
 
@@ -66,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("Error initializing auth:", error);
         setLoading(false);
+        return () => {};
       }
     };
 

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ExpHive",
+    "name": "ExpenseHive",
     "slug": "expense-hive",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,7 +8,23 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "owner": "itscharanteja",
-    "plugins": ["expo-router", "expo-notifications", "expo-font"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": ["./assets/sounds/notification.mp3"]
+        }
+      ],
+      "expo-font"
+    ],
+    "splash": {
+      "image": "./assets/images/expense.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "androidStatusBar": {
       "backgroundColor": "#ffffff",
       "translucent": false,
@@ -19,17 +35,27 @@
       "color": "#ffffff",
       "iosDisplayInForeground": true,
       "androidMode": "default",
-      "androidCollapsedTitle": "New Notification"
+      "androidCollapsedTitle": "ExpenseHive"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.itscharanteja.expensehive"
     },
     "android": {
-      "package": "com.itscharanteja.exphive",
-      "googleServicesFile": "./google-services.json",
+      "splash": {
+        "backgroundColor": "#ffffff",
+        "resizeMode": "contain",
+        "image": "./assets/images/expense.png",
+        "dark": {
+          "backgroundColor": "#000000",
+          "resizeMode": "contain",
+          "image": "./assets/images/expense.png"
+        }
+      },
+      "package": "com.itscharanteja.expensehive",
+      "googleServicesFile": "./android/app/google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/expense.png",
         "backgroundColor": "#ffffff"
       }
     },

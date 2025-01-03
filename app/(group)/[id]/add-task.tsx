@@ -114,19 +114,24 @@ export default function AddGroupTask() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Task</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.submitButton}
           onPress={handleSubmit}
           disabled={isSubmitting}
         >
-          <Text style={[
-            styles.doneButtonText,
-            isSubmitting && styles.buttonDisabled
-          ]}>
+          <Text
+            style={[
+              styles.doneButtonText,
+              isSubmitting && styles.buttonDisabled,
+            ]}
+          >
             Done
           </Text>
         </TouchableOpacity>
@@ -276,9 +281,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   doneButtonText: {
-    color: '#34C759',  // iOS green color
+    color: "#34C759", // iOS green color
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   buttonDisabled: {
     opacity: 0.5,
