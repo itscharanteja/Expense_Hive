@@ -1,15 +1,15 @@
-import '@testing-library/jest-native/extend-expect';
-import { jest } from '@jest/globals';
+import "@testing-library/jest-native/extend-expect";
+import { jest } from "@jest/globals";
 
 // Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => ({
+jest.mock("@react-native-async-storage/async-storage", () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
   removeItem: jest.fn(() => Promise.resolve()),
 }));
 
 // Mock Firebase
-jest.mock('./app/config/firebase', () => ({
+jest.mock("./app/config/firebase", () => ({
   auth: {
     signInWithEmailAndPassword: jest.fn(),
     createUserWithEmailAndPassword: jest.fn(),
@@ -24,7 +24,7 @@ jest.mock('./app/config/firebase', () => ({
 }));
 
 // Mock expo-router
-jest.mock('expo-router', () => ({
+jest.mock("expo-router", () => ({
   router: {
     push: jest.fn(),
     replace: jest.fn(),
@@ -40,11 +40,11 @@ jest.mock('expo-router', () => ({
 }));
 
 // Mock Ionicons
-jest.mock('@expo/vector-icons', () => ({
-  Ionicons: 'Ionicons',
+jest.mock("@expo/vector-icons", () => ({
+  Ionicons: "Ionicons",
 }));
 
 // Mock LinearGradient
-jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: 'LinearGradient',
-})); 
+jest.mock("expo-linear-gradient", () => ({
+  LinearGradient: "LinearGradient",
+}));

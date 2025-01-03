@@ -149,7 +149,7 @@ export default function AddExpense() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <TouchableOpacity 
+            <TouchableOpacity
               testID="back-button"
               onPress={handleBack}
               style={styles.backButton}

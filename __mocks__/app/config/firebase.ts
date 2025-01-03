@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 export const auth = {
   signInWithEmailAndPassword: jest.fn(),
   createUserWithEmailAndPassword: jest.fn(),
@@ -17,4 +19,4 @@ export const db = {
   doc: jest.fn(),
 } as any;
 
-export default { auth, db };
+export default { auth, db }; 
