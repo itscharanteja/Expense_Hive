@@ -26,6 +26,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="home"
         options={{
+          tabBarButtonTestID: "home-tab",
           title: "Home",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size} color={color} />
@@ -35,6 +36,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="expenses"
         options={{
+          tabBarButtonTestID: "expenses-tab",
           title: "Expenses",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="wallet" size={size} color={color} />
@@ -44,6 +46,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="groups"
         options={{
+          tabBarButtonTestID: "groups-tab",
           title: "Groups",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
@@ -53,6 +56,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="profile"
         options={{
+          tabBarButtonTestID: "profile-tab",
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />

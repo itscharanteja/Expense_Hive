@@ -11,6 +11,13 @@ jest.mock("@firebase/auth", () => ({
   }),
 }));
 
+jest.mock("@firebase/firestore", () => ({
+  getFirestore: () => ({
+    collection: jest.fn(),
+    doc: jest.fn(),
+  }),
+}));
+
 export default {
   getAuth: mockGetAuth,
   signInWithEmailAndPassword: mockSignInWithEmailAndPassword,

@@ -18,3 +18,14 @@ jest.mock("@firebase/auth", () => {
     }),
   };
 });
+
+jest.mock(
+  "react-native/Libraries/Components/StatusBar/StatusBar",
+  () => "StatusBar"
+);
+
+// Mock Platform
+jest.mock("react-native/Libraries/Utilities/Platform", () => ({
+  OS: "ios",
+  select: jest.fn((obj) => obj.ios),
+}));
