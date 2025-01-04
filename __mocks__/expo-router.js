@@ -1,5 +1,4 @@
 module.exports = {
-  Link: 'Link',
   router: {
     push: jest.fn(),
     replace: jest.fn(),
@@ -11,4 +10,4 @@ module.exports = {
     back: jest.fn(),
   }),
   useLocalSearchParams: () => ({}),
-}; 
+};

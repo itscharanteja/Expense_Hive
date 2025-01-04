@@ -3,18 +3,24 @@ import { render, fireEvent, act, waitFor } from "@testing-library/react-native";
 import { AuthProvider } from "../../app/context/auth";
 import Login from "../../app/(auth)/login";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { Image } from "react-native";
+import { Text } from "react-native";
 
-// 1) Mock the modular signInWithEmailAndPassword function
-jest.mock("firebase/auth", () => {
-  const originalModule = jest.requireActual("firebase/auth");
-  return {
-    ...originalModule,
-    signInWithEmailAndPassword: jest.fn(),
-  };
-});
+// Mock firebase/auth with all required functions
+jest.mock("firebase/auth", () => ({
+  ...jest.requireActual("firebase/auth"),
+  getAuth: jest.fn(() => ({})),
+  signInWithEmailAndPassword: jest.fn(),
+  initializeAuth: jest.fn(() => ({})),
+  getReactNativePersistence: jest.fn(() => ({})),
+}));
 
-// 2) Mock expo-router
+// Mock firebase configuration
+jest.mock("../../app/config/firebase", () => ({
+  auth: {},
+  app: {},
+  db: {},
+}));
+
 jest.mock("expo-router", () => ({
   router: {
     push: jest.fn(),
@@ -25,9 +31,6 @@ jest.mock("expo-router", () => ({
 jest.mock("react-native/Libraries/Image/Image", () => "Image");
 
 // Error Boundary Component
-
-import { Text } from "react-native";
-
 const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -70,7 +73,7 @@ describe("Basic User Flow", () => {
   describe("Authentication", () => {
     it("should handle login with valid credentials", async () => {
       // Mock successful authentication
-      signInWithEmailAndPassword.mockResolvedValue({
+      (signInWithEmailAndPassword as jest.Mock).mockResolvedValue({
         user: { uid: "test-uid", email: "test@example.com" },
       });
 
@@ -94,7 +97,7 @@ describe("Basic User Flow", () => {
       // Verify login attempt
       await waitFor(() => {
         expect(signInWithEmailAndPassword).toHaveBeenCalledWith(
-          expect.any(Object), // The `auth` object
+          expect.any(Object),
           "test@example.com",
           "password123"
         );

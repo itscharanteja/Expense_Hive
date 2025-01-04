@@ -1,17 +1,13 @@
-export const collection = jest.fn();
-export const doc = jest.fn();
-export const getDoc = jest.fn();
-export const setDoc = jest.fn();
-export const query = jest.fn();
-export const where = jest.fn();
-export const getDocs = jest.fn();
-
-export const getFirestore = jest.fn(() => ({
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-  query,
-  where,
-  getDocs,
-}));
+module.exports = {
+  getFirestore: jest.fn(),
+  collection: jest.fn(),
+  doc: jest.fn(),
+  addDoc: jest.fn(),
+  getDoc: jest.fn(),
+  getDocs: jest.fn(),
+  updateDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+  query: jest.fn(),
+  where: jest.fn(),
+  orderBy: jest.fn(),
+};

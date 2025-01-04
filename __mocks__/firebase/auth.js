@@ -1,23 +1,25 @@
-export const mockOnAuthStateChanged = jest.fn();
-export const mockSignOut = jest.fn();
-export const mockSignInWithEmailAndPassword = jest.fn();
-export const mockGetReactNativePersistence = jest.fn(() => ({}));
-export const mockInitializeAuth = jest.fn(() => ({
-  currentUser: null,
-  onAuthStateChanged: mockOnAuthStateChanged,
-  signOut: mockSignOut,
-  signInWithEmailAndPassword: mockSignInWithEmailAndPassword,
-}));
+const unsubscribe = jest.fn();
 
-export const getAuth = jest.fn(() => ({
+const mockAuth = {
   currentUser: null,
-  onAuthStateChanged: mockOnAuthStateChanged,
-  signOut: mockSignOut,
-  signInWithEmailAndPassword: mockSignInWithEmailAndPassword,
-}));
+  onAuthStateChanged: jest.fn((callback) => {
+    console.log("Mock onAuthStateChanged called");
+    setTimeout(() => callback(null), 0); // Simulate async auth state change
+    return unsubscribe;
+  }),
+};
 
-// Named exports
-export const signInWithEmailAndPassword = mockSignInWithEmailAndPassword;
-export const signOut = mockSignOut;
-export const initializeAuth = mockInitializeAuth;
-export const getReactNativePersistence = mockGetReactNativePersistence;
+const auth = {
+  ...mockAuth,
+  signOut: jest.fn(() => Promise.resolve()),
+};
+
+module.exports = {
+  getAuth: jest.fn(() => auth),
+  signInWithEmailAndPassword: jest.fn(),
+  createUserWithEmailAndPassword: jest.fn(),
+  signOut: jest.fn(),
+  onAuthStateChanged: jest.fn(),
+  initializeAuth: jest.fn(() => auth),
+  getReactNativePersistence: jest.fn(() => ({})),
+};

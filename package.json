@@ -24,9 +24,10 @@
       "./jest.setup.js"
     ],
     "moduleNameMapper": {
-      "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "./__mocks__/fileMock.js",
+      "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js",
+      "^.+\\.(png|jpg|jpeg|gif|webp|svg|ico)$": "<rootDir>/__mocks__/fileMock.js",
       "expo-router": "./__mocks__/expo-router.js",
-      "expo-linear-gradient$": "<rootDir>/__mocks__/expo-linear-gradient.js",
+      "^expo-linear-gradient$": "<rootDir>/__mocks__/expo-linear-gradient.js",
       "@expo/vector-icons": "./__mocks__/expo-vector-icons.js",
       "^firebase/auth$": "<rootDir>/__mocks__/firebase/auth.js",
       "firebase/firestore": "<rootDir>/__mocks__/firebase/firestore.js"
