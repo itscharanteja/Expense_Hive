@@ -7,8 +7,6 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
-  Image,
-  Modal,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import {
@@ -41,7 +39,6 @@ export default function AddGroupTask() {
   const [groupMembers, setGroupMembers] = useState<Member[]>([]);
   const [selectedMember, setSelectedMember] = useState<string>("");
 
-  // Fetch group members when component mounts
   useEffect(() => {
     const fetchGroupMembers = async () => {
       if (!id) return;
@@ -50,7 +47,6 @@ export default function AddGroupTask() {
         if (groupDoc.exists()) {
           const members = groupDoc.data().members;
 
-          // Fetch usernames for all members
           const membersWithUsernames: Member[] = [];
           for (const email of members) {
             const userQuery = query(

@@ -3,7 +3,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
-  onAuthStateChanged,
   User,
   getAuth,
 } from "firebase/auth";
@@ -137,7 +136,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       await firebaseSignOut(auth);
-      // Clear all saved data
       await AsyncStorage.removeItem(AUTH_KEY);
       await AsyncStorage.removeItem(CREDS_KEY);
       setUser(null);
@@ -165,7 +163,6 @@ export function useAuth() {
   return context;
 }
 
-// Add a default export
 const AuthModule = {
   AuthProvider,
   useAuth,

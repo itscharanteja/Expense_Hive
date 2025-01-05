@@ -132,7 +132,7 @@ export default function AddExpense() {
   return (
     <LinearGradient
       colors={[
-        Colors.primary + "40", // Primary color with opacity
+        Colors.primary + "40",
         Colors.primary + "15",
         Colors.primary + "08",
         Colors.accent + "05",

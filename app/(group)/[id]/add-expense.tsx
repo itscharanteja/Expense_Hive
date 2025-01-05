@@ -24,6 +24,7 @@ import {
 import { db } from "../../config/firebase";
 import { useAuth } from "../../context/auth";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImageManipulator from "expo-image-manipulator";
 
 type Member = {
   email: string;
@@ -98,7 +99,7 @@ export default function AddGroupExpense() {
 
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: "images" as ImagePicker.MediaType,
-        quality: 0.8,
+        quality: 0.5,
         allowsEditing: true,
         aspect: [4, 3],
       });
@@ -139,8 +140,17 @@ export default function AddGroupExpense() {
 
   const uploadReceipt = async (uri: string) => {
     try {
-      const response = await fetch(uri);
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1024 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      const response = await fetch(manipulatedImage.uri);
       const blob = await response.blob();
+
+      if (blob.size > 1024 * 1024) {
+        throw new Error("Image size must be less than 1MB");
+      }
       const reader = new FileReader();
 
       return new Promise((resolve, reject) => {
@@ -259,7 +269,7 @@ export default function AddGroupExpense() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

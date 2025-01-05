@@ -145,7 +145,7 @@ export default function Register() {
               <Link href="/(auth)/login" asChild>
                 <TouchableOpacity
                   testID="login-link"
-                  onPress={() => router.push('/(auth)/login')}
+                  onPress={() => router.push("/(auth)/login")}
                 >
                   <Text style={styles.linkText}>Login</Text>
                 </TouchableOpacity>

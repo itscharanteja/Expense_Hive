@@ -76,13 +76,10 @@ export default function Expenses() {
     "December",
   ];
 
-  const years = Array.from({ length: 12 }, (_, i) => 2018 + i);
-
   const fetchExpenses = async () => {
     if (!user) return;
 
     try {
-      // Get start and end of selected month
       const startOfMonth = new Date(selectedYear, selectedMonth, 1);
       const endOfMonth = new Date(
         selectedYear,
@@ -92,8 +89,6 @@ export default function Expenses() {
         59,
         59
       );
-
-      // Fetch personal expenses
       const personalExpensesQuery = query(
         collection(db, "expenses"),
         where("userId", "==", user.uid),
@@ -102,7 +97,6 @@ export default function Expenses() {
         orderBy("date", "desc")
       );
 
-      // Fetch group expenses where user is involved
       const groupExpensesQuery = query(
         collection(db, "groupExpenses"),
         where("splitBetween", "array-contains", user.email),
@@ -128,8 +122,6 @@ export default function Expenses() {
           const expenseData = expenseDoc.data();
           const shareAmount =
             expenseData.amount / expenseData.splitBetween.length;
-
-          // Get group name
           const groupRef = firestoreDoc(db, "groups", expenseData.groupId);
           const groupDoc = await getDoc(groupRef);
           const groupName = groupDoc.exists()
@@ -147,8 +139,6 @@ export default function Expenses() {
           } as Expense;
         })
       );
-
-      // Combine and sort all expenses
       const allExpenses = [...personalExpenses, ...groupExpenses].sort(
         (a, b) => b.date.getTime() - a.date.getTime()
       );
@@ -164,11 +154,8 @@ export default function Expenses() {
     }
   };
 
-  // Initial fetch and month change listener
   useEffect(() => {
     fetchExpenses();
-
-    // Check for month change
     const interval = setInterval(() => {
       const now = new Date();
       if (
@@ -179,7 +166,7 @@ export default function Expenses() {
         setSelectedMonth(now.getMonth());
         fetchExpenses();
       }
-    }, 60000); // Check every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [selectedMonth, selectedYear, expenses]);
@@ -223,15 +210,6 @@ export default function Expenses() {
       return sum + expense.amount;
     }, 0);
   };
-
-  const getDaysInMonth = (month: number, year: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (month: number, year: number) => {
-    return new Date(year, month, 1).getDay();
-  };
-
   const handlePrevMonth = () => {
     if (selectedMonth === 0) {
       setSelectedMonth(11);
@@ -249,39 +227,6 @@ export default function Expenses() {
       setSelectedMonth(selectedMonth + 1);
     }
   };
-
-  const toggleYearPicker = () => {
-    setShowYearPicker(!showYearPicker);
-  };
-
-  const handleDateSelect = (day: number) => {
-    setSelectedDate(day);
-  };
-
-  const handleMonthSelect = (monthIndex: number) => {
-    setSelectedMonth(monthIndex);
-    setShowMonthGrid(false);
-  };
-
-  const getYearRangeForPage = (pageIndex: number) => {
-    const startYear = yearRange.start + pageIndex * YEARS_PER_PAGE;
-    return Array.from(
-      { length: YEARS_PER_PAGE },
-      (_, i) => startYear + i
-    ).filter((year) => year >= yearRange.start && year <= yearRange.end);
-  };
-
-  const handleYearSwipe = (direction: "next" | "prev") => {
-    if (
-      direction === "next" &&
-      (yearPageIndex + 1) * YEARS_PER_PAGE < yearRange.end
-    ) {
-      setYearPageIndex(yearPageIndex + 1);
-    } else if (direction === "prev" && yearPageIndex > 0) {
-      setYearPageIndex(yearPageIndex - 1);
-    }
-  };
-
   return (
     <LinearGradient
       colors={[Colors.primary + "40", Colors.accent + "20"]}

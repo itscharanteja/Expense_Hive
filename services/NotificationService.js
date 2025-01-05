@@ -32,14 +32,12 @@ export async function savePushToken(token) {
   }
 }
 
-// Function to register for push notifications
 export async function registerForPushNotificationsAsync() {
   let token;
 
   try {
     console.log("Registering for push notifications...");
     if (Device.isDevice) {
-      // Check and request notification permissions
       const { status: existingStatus } =
         await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
@@ -54,14 +52,12 @@ export async function registerForPushNotificationsAsync() {
         return null;
       }
 
-      // Get the Expo Push Token
       token = (await Notifications.getExpoPushTokenAsync()).data;
       console.log("Expo Push Token:", token);
     } else {
       console.log("Must use a physical device for push notifications.");
     }
 
-    // Set up Android notification channel
     if (Platform.OS === "android") {
       console.log("Setting up Android notification channel...");
       await Notifications.setNotificationChannelAsync("default", {
@@ -79,20 +75,17 @@ export async function registerForPushNotificationsAsync() {
   }
 }
 
-// Function to handle received notifications
 export function addNotificationListener(callback) {
   const subscription = Notifications.addNotificationReceivedListener(callback);
   return subscription;
 }
 
-// Function to handle responses to notifications
 export function addNotificationResponseListener(callback) {
   const subscription =
     Notifications.addNotificationResponseReceivedListener(callback);
   return subscription;
 }
 
-// Function to send a push notification using Expo Push API
 export async function sendPushNotification(to, title, body, data = {}) {
   try {
     const message = {
@@ -114,7 +107,6 @@ export async function sendPushNotification(to, title, body, data = {}) {
   }
 }
 
-// Notification types for categorization
 export const NotificationTypes = {
   REMINDER_DUE: "REMINDER_DUE",
   NEW_REMINDER: "NEW_REMINDER",
@@ -122,7 +114,6 @@ export const NotificationTypes = {
   TASK_UPDATE: "TASK_UPDATE",
 };
 
-// Reminder notification: 30 minutes before the due time
 export async function sendReminderDueNotification(to, reminderTitle) {
   await sendPushNotification(
     to,
@@ -132,7 +123,6 @@ export async function sendReminderDueNotification(to, reminderTitle) {
   );
 }
 
-// New reminder notification
 export async function sendNewReminderNotification(
   to,
   groupName,
@@ -146,7 +136,6 @@ export async function sendNewReminderNotification(
   );
 }
 
-// Group addition notification
 export async function sendGroupAdditionNotification(
   to,
   groupName,
@@ -160,7 +149,6 @@ export async function sendGroupAdditionNotification(
   );
 }
 
-//New task notification
 export async function sendNewTaskNotification(to, taskTitle) {
   await sendPushNotification(
     to,
@@ -170,7 +158,6 @@ export async function sendNewTaskNotification(to, taskTitle) {
   );
 }
 
-// Task update notification
 export async function sendTaskUpdateNotification(to, taskTitle, status) {
   await sendPushNotification(
     to,

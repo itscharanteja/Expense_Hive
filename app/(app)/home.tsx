@@ -23,7 +23,6 @@ import {
 import { db } from "../config/firebase";
 import { Colors } from "../constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
 
 type ExpenseSummary = {
   totalPersonal: number;
@@ -48,10 +47,10 @@ type RecentExpense = {
 const getMonthDateRange = () => {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  start.setHours(0, 0, 0, 0); // Start of first day
+  start.setHours(0, 0, 0, 0);
 
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  end.setHours(23, 59, 59, 999); // End of last day
+  end.setHours(23, 59, 59, 999);
   return { start, end };
 };
 
@@ -125,7 +124,6 @@ export default function Home() {
       }
     );
 
-    // Group expenses listener
     const unsubscribeGroup = onSnapshot(
       groupExpensesQuery,
       async (snapshot) => {
@@ -188,25 +186,20 @@ export default function Home() {
   const fetchRecentExpenses = () => {
     if (!user) return;
 
-    // Get all personal expenses ordered by date
     const recentPersonalQuery = query(
       collection(db, "expenses"),
       where("userId", "==", user.uid),
       orderBy("date", "desc")
     );
 
-    // Get all group expenses ordered by date
     const recentGroupQuery = query(
       collection(db, "groupExpenses"),
       where("splitBetween", "array-contains", user.email),
       orderBy("date", "desc")
     );
 
-    // Listen to personal expenses with changes
     const unsubscribeRecentPersonal = onSnapshot(recentPersonalQuery, {
       next: (snapshot) => {
-        // Handle added or modified expenses
-        const changes = snapshot.docChanges();
         const personalExpenses = snapshot.docs.map((doc) => {
           const data = doc.data();
           return {
@@ -242,7 +235,6 @@ export default function Home() {
       },
     });
 
-    // Listen to group expenses with changes
     const unsubscribeRecentGroup = onSnapshot(recentGroupQuery, {
       next: async (snapshot) => {
         const groupExpenses: RecentExpense[] = [];
@@ -313,7 +305,6 @@ export default function Home() {
     setRefreshing(true);
     fetchSummary();
     fetchRecentExpenses();
-    // Set refreshing to false after a short delay to ensure data is loaded
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
@@ -424,7 +415,6 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: "#fff",
   },
   gradientBackground: {
     position: "absolute",

@@ -28,7 +28,6 @@ import {
   deleteDoc,
   orderBy,
   writeBatch,
-  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/auth";
@@ -298,12 +297,10 @@ export default function GroupDetails() {
       console.log("Member found:", memberDoc.id);
       console.log("Member data:", memberDoc.data());
 
-      // Update group members
       await updateDoc(doc(db, "groups", id as string), {
         members: arrayUnion(memberEmail.toLowerCase()),
       });
 
-      // Create notification with guaranteed username
       const notificationData = {
         type: "GROUP_ADDITION",
         groupId: id,
@@ -389,10 +386,8 @@ export default function GroupDetails() {
           style: "destructive",
           onPress: async () => {
             try {
-              // First delete the receipt if it exists
               if (expense.receiptId) {
                 try {
-                  // Get receipt document to ensure it exists
                   const receiptRef = doc(db, "receipts", expense.receiptId);
                   const receiptDoc = await getDoc(receiptRef);
 
@@ -401,11 +396,9 @@ export default function GroupDetails() {
                   }
                 } catch (error) {
                   console.error("Error deleting receipt:", error);
-                  // Continue with expense deletion even if receipt deletion fails
                 }
               }
 
-              // Then delete the expense
               await deleteDoc(doc(db, "groupExpenses", expense.id));
               Alert.alert("Success", "Expense deleted successfully");
             } catch (error) {
@@ -435,14 +428,11 @@ export default function GroupDetails() {
         completed: false,
       };
 
-      // Add reminder to database
       await addDoc(collection(db, "groupReminders"), reminderData);
 
-      // Send notifications to all group members
       if (group?.members) {
         for (const memberEmail of group.members) {
           if (memberEmail !== user.email) {
-            // Get user's push token
             const usersRef = collection(db, "users");
             const userQuery = query(
               usersRef,
@@ -461,7 +451,6 @@ export default function GroupDetails() {
               }
             }
 
-            // Create notification in database
             await addDoc(collection(db, "notifications"), {
               type: "GROUP_REMINDER",
               groupId: id,
@@ -594,7 +583,6 @@ export default function GroupDetails() {
   const handleDeleteGroup = async () => {
     if (!group || !user) return;
 
-    // Only group creator can delete the group
     if (group.createdBy !== user.email) {
       Alert.alert("Error", "Only group creator can delete the group");
       return;
@@ -615,7 +603,6 @@ export default function GroupDetails() {
             try {
               const batch = writeBatch(db);
 
-              // Delete all group expenses
               const expensesQuery = query(
                 collection(db, "groupExpenses"),
                 where("groupId", "==", id)
@@ -625,7 +612,6 @@ export default function GroupDetails() {
                 batch.delete(doc.ref);
               });
 
-              // Delete all group tasks
               const tasksQuery = query(
                 collection(db, "groupTasks"),
                 where("groupId", "==", id)
@@ -635,7 +621,6 @@ export default function GroupDetails() {
                 batch.delete(doc.ref);
               });
 
-              // Create removal notifications for all members except creator
               const removedMembers = group.members.filter(
                 (member) => member !== user.email
               );
@@ -653,10 +638,8 @@ export default function GroupDetails() {
                 });
               });
 
-              // Delete the group document
               batch.delete(doc(db, "groups", id as string));
 
-              // Commit all the batch operations
               await batch.commit();
 
               Alert.alert("Success", "Group deleted successfully", [

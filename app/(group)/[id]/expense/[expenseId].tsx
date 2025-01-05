@@ -114,26 +114,20 @@ export default function ExpenseDetails() {
     );
   }
 
-  const amountPerPerson = expense.amount / expense.splitBetween.length;
-
   const togglePaidStatus = async (email: string) => {
     try {
       const expenseRef = doc(db, "groupExpenses", expenseId as string);
 
-      // Get current paidMembers array or empty array if it doesn't exist
       const currentPaidMembers = expense?.paidMembers || [];
 
-      // Toggle the member's paid status
       const updatedPaidMembers = currentPaidMembers.includes(email)
         ? currentPaidMembers.filter((member) => member !== email)
         : [...currentPaidMembers, email];
 
-      // Update Firestore
       await updateDoc(expenseRef, {
         paidMembers: updatedPaidMembers,
       });
 
-      // Update local state
       setExpense((expense) =>
         expense
           ? {
@@ -145,30 +139,6 @@ export default function ExpenseDetails() {
     } catch (error) {
       console.error("Error toggling paid status:", error);
       Alert.alert("Error", "Failed to update payment status");
-    }
-  };
-
-  const toggleExpenseStatus = async () => {
-    try {
-      await updateDoc(doc(db, "groupExpenses", expenseId as string), {
-        settled: !expense?.settled,
-      });
-
-      // Update local state
-      if (expense) {
-        setExpense({
-          ...expense,
-          settled: !expense.settled,
-        });
-      }
-
-      Alert.alert(
-        "Success",
-        `Expense marked as ${expense?.settled ? "unsettled" : "settled"}`
-      );
-    } catch (error) {
-      console.error("Error toggling expense status:", error);
-      Alert.alert("Error", "Failed to update expense status");
     }
   };
 
@@ -410,7 +380,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    paddingTop: 4, // Decreased from 8 to 4
+    paddingTop: 4,
     paddingBottom: 16,
   },
   header: {
@@ -418,14 +388,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 4, // Decreased from 6 to 4
+    paddingVertical: 4,
     marginBottom: 0,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     backgroundColor: "#fff",
   },
   backButton: {
-    padding: 4, // Decreased from 8 to 4
+    padding: 4,
   },
   headerTitle: {
     fontSize: 20,
@@ -434,10 +404,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 16, // Add top padding
+    paddingTop: 16,
   },
   scrollContent: {
-    paddingTop: 12, // Add padding to scroll content
+    paddingTop: 12,
     paddingBottom: 24,
   },
   card: {
@@ -450,7 +420,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
-    marginTop: 8, // Add top margin to first card
+    marginTop: 8,
   },
   description: {
     fontSize: 20,

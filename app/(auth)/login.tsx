@@ -12,7 +12,6 @@ import {
   ScrollView,
   StatusBar,
 } from "react-native";
-import { Link } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { Colors } from "../constants/Colors";
@@ -20,7 +19,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 
 import { router } from "expo-router";
-
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -110,7 +108,7 @@ export default function Login() {
                 <Text style={styles.footerText}>Don't have an account? </Text>
                 <TouchableOpacity
                   testID="register-link"
-                  onPress={() => router.push('/(auth)/register')}
+                  onPress={() => router.push("/(auth)/register")}
                 >
                   <Text style={styles.linkText}>Sign Up</Text>
                 </TouchableOpacity>

@@ -61,7 +61,6 @@ export default function Profile() {
   useEffect(() => {
     if (!user?.email) return;
 
-    // Set up listeners for real-time updates without date filtering
     const personalExpensesQuery = query(
       collection(db, "expenses"),
       where("userId", "==", user.uid)
@@ -72,7 +71,6 @@ export default function Profile() {
       where("splitBetween", "array-contains", user.email)
     );
 
-    // Listen to personal expenses
     const unsubscribePersonal = onSnapshot(
       personalExpensesQuery,
       (snapshot) => {
@@ -87,7 +85,6 @@ export default function Profile() {
       }
     );
 
-    // Listen to group expenses
     const unsubscribeGroup = onSnapshot(groupExpensesQuery, (snapshot) => {
       const groupTotal = snapshot.docs.reduce((sum, doc) => {
         const data = doc.data();
