@@ -1086,7 +1086,6 @@ export default function GroupDetails() {
                   ]}
                   onPress={onAddTaskPress}
                   disabled={addTask}
-                  testID="add-task-button"
                 >
                   <Text style={styles.buttonText}>
                     {addTask ? "Adding..." : "Add Task"}
