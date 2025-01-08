@@ -48,12 +48,10 @@ const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({
       });
     };
 
-    // Add global error handler
     const originalErrorHandler = ErrorUtils.getGlobalHandler();
     ErrorUtils.setGlobalHandler(errorHandler);
 
     return () => {
-      // Restore original error handler on cleanup
       ErrorUtils.setGlobalHandler(originalErrorHandler);
     };
   }, []);
@@ -72,7 +70,6 @@ describe("Basic User Flow", () => {
 
   describe("Authentication", () => {
     it("should handle login with valid credentials", async () => {
-      // Mock successful authentication
       (signInWithEmailAndPassword as jest.Mock).mockResolvedValue({
         user: { uid: "test-uid", email: "test@example.com" },
       });
@@ -85,16 +82,13 @@ describe("Basic User Flow", () => {
         </ErrorBoundary>
       );
 
-      // Fill in login form
       fireEvent.changeText(getByPlaceholderText("Email"), "test@example.com");
       fireEvent.changeText(getByPlaceholderText("Password"), "password123");
 
-      // Trigger login
       await act(async () => {
         fireEvent.press(getByTestId("login-button"));
       });
 
-      // Verify login attempt
       await waitFor(() => {
         expect(signInWithEmailAndPassword).toHaveBeenCalledWith(
           expect.any(Object),

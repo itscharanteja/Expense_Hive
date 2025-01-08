@@ -13,7 +13,7 @@ import { router } from "expo-router";
 import { mockOnAuthStateChanged } from "../../../__mocks__/firebase";
 import { User } from "@firebase/auth";
 
-// Mock the router
+
 jest.mock("expo-router", () => ({
   router: {
     back: jest.fn(),
